@@ -30,7 +30,7 @@ router.get('/api-docs', swaggerUI.setup(swaggerDocument));
 
 router.get('/', (req, res) => {
   res.status(200).json({
-    message: 'API is running'
+    message: 'API is running in NEW BE'
   });
 });
 router.post('/cek-nik', auth, cekNik);
