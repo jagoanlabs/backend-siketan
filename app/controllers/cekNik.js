@@ -12,10 +12,16 @@ const ApiError = require('../../utils/ApiError');
 
 const cekNik = async (req, res) => {
   try {
-    const { NIK = '' } = req.body;
+    const { nik } = req.body;
+    console.log('NIK yang diterima:', nik);
+
+    // Validasi input
+    if (!nik) {
+      throw new ApiError(400, 'NIK harus diisi');
+    }
 
     const user = await dataPetani.findOne({
-      where: { NIK },
+      where: { nik },
       include: [
         { model: tanamanPetani },
         { model: kelompok },
@@ -23,10 +29,13 @@ const cekNik = async (req, res) => {
         { model: desa, as: 'desaData' }
       ]
     });
-    if (!user) throw new ApiError(400, `data dengan NIK ${NIK} tidak ditemukan`);
+
+    if (!user) {
+      throw new ApiError(400, `Data dengan NIK ${nik} tidak ditemukan`); // gunakan 'nik' (lowercase)
+    }
 
     res.status(200).json({
-      message: `data dengan NIK ${NIK} ditemukan`,
+      message: `Data dengan NIK ${nik} ditemukan`, // gunakan 'nik' (lowercase)
       user
     });
   } catch (error) {
@@ -35,7 +44,6 @@ const cekNik = async (req, res) => {
     });
   }
 };
-
 const cekNiP = async (req, res) => {
   try {
     const { NIP = '' } = req.body;

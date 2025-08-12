@@ -256,10 +256,37 @@ const productPenyuluh = async (req, res) => {
   }
 };
 
+const listProduk = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const products = await penjual.findAll({
+      include: [
+        {
+          model: tblAkun,
+          required: true,
+          where: { id } // Filter berdasarkan ID user di tblAkun
+        }
+      ]
+    });
+
+    res.status(200).json({
+      message: 'Berhasil Mendapatkan List Product',
+      data: products
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      message: error.message
+    });
+  }
+};
+
+
 module.exports = {
   tambahDaftarPenjual,
   productPetani,
   productPenyuluh,
   deleteProduk,
-  getDetailProduk
+  getDetailProduk,
+  listProduk
 };
