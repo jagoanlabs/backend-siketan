@@ -281,6 +281,53 @@ const listProduk = async (req, res) => {
   }
 };
 
+const getDetailProdukByName = async (req, res) => {
+  try {
+    const { name } = req.params;
+
+    const products = await penjual.findAll({
+      include: [
+        {
+          model: tblAkun,
+          required: true,
+          where: { name } // Filter berdasarkan nama di tblAkun
+        }
+      ]
+    });
+
+    res.status(200).json({
+      message: 'Berhasil Mendapatkan List Product',
+      data: products
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      message: error.message
+    });
+  }
+};
+
+const listToko = async (req, res) => {
+  try {
+    const toko = await penjual.findAll({
+      include: [
+        {
+          model: tblAkun,
+          required: true
+        }
+      ],
+      group: ['tbl_akun.id'] // supaya 1 akun sekali
+    });
+
+    res.status(200).json({
+      message: 'Berhasil Mendapatkan List Product',
+      data: toko
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      message: error.message
+    });
+  }
+};
 
 module.exports = {
   tambahDaftarPenjual,
@@ -288,5 +335,7 @@ module.exports = {
   productPenyuluh,
   deleteProduk,
   getDetailProduk,
-  listProduk
+  listToko,
+  listProduk,
+  getDetailProdukByName
 };

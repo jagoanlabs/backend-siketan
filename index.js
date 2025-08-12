@@ -8,36 +8,31 @@ const http = require('http');
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(cors({
-  origin: '*', // atau specific domains untuk production
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization',
-    // ADD THESE CACHE CONTROL HEADERS
-    'Cache-Control',
-    'Pragma', 
-    'Expires',
-    'If-None-Match',
-    'If-Modified-Since',
-    'X-Requested-With',
-    'Accept',
-    'Origin'
-  ],
-  exposedHeaders: [
-    'Cache-Control',
-    'Content-Length',
-    'ETag',
-    'Expires',
-    'Last-Modified'
-  ],
-  credentials: true, // if needed for cookies/auth
-  maxAge: 86400 // Cache preflight response for 24 hours
-}));
+app.use(
+  cors({
+    origin: '*', // atau specific domains untuk production
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      // ADD THESE CACHE CONTROL HEADERS
+      'Cache-Control',
+      'Pragma',
+      'Expires',
+      'If-None-Match',
+      'If-Modified-Since',
+      'X-Requested-With',
+      'Accept',
+      'Origin'
+    ],
+    exposedHeaders: ['Cache-Control', 'Content-Length', 'ETag', 'Expires', 'Last-Modified'],
+    credentials: true, // if needed for cookies/auth
+    maxAge: 86400 // Cache preflight response for 24 hours
+  })
+);
 
 // Handle preflight requests
 app.options('*', cors());
-
 
 app.use(routerAll);
 
