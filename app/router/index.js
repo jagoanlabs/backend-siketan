@@ -24,6 +24,7 @@ const logActivity = require('./logActivity');
 const dataOperator = require('./dataOperator');
 const dashboard = require('./dashboard');
 const wilayah = require('./wilayah');
+const landingStatistik = require('./landingStatistik');
 
 router.use('/api-docs', swaggerUI.serve);
 router.get('/api-docs', swaggerUI.setup(swaggerDocument));
@@ -33,11 +34,12 @@ router.get('/', (req, res) => {
     message: 'API is running in NEW BE'
   });
 });
-router.post('/cek-nik',  cekNik);
+router.post('/cek-nik', cekNik);
 router.post('/cek-nip', auth, cekNiP);
 
 router.use('/auth', akun);
 router.use('/statistik', statistik);
+router.use('/landing-statistik', landingStatistik); // Endpoint publik untuk landing page
 router.use('/kelompok', kelompok);
 router.use('/tanaman-petani', tanamanPetani);
 router.use('/footer', footer);
