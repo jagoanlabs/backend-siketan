@@ -26,8 +26,19 @@ fs.readdirSync(__dirname)
     );
   })
   .forEach((file) => {
-    const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
-    db[model.name] = model;
+    try {
+      const modelPath = path.join(__dirname, file);
+      const modelModule = require(modelPath);
+
+      if (typeof modelModule === 'function') {
+        const model = modelModule(sequelize, Sequelize.DataTypes);
+        db[model.name] = model;
+      } else {
+        console.warn(`Warning: Model file ${file} does not export a function`);
+      }
+    } catch (error) {
+      console.error(`Error loading model ${file}:`, error.message);
+    }
   });
 
 Object.keys(db).forEach((modelName) => {
