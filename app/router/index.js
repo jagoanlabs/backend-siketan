@@ -33,7 +33,7 @@ router.get('/', (req, res) => {
     message: 'API is running in NEW BE'
   });
 });
-router.post('/cek-nik', auth, cekNik);
+router.post('/cek-nik',  cekNik);
 router.post('/cek-nip', auth, cekNiP);
 
 router.use('/auth', akun);
