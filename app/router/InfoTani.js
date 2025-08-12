@@ -18,8 +18,8 @@ router.post('/event-tani/add', auth, upload.single('fotoKegiatan'), tambahEventT
 router.post('/info-tani/add', auth, upload.single('fotoBerita'), tambahInfoTani);
 router.get('/info-tani', infoTani);
 router.get('/event-tani', eventTani);
-router.get('/event-tani/:id', auth, eventTaniById);
-router.get('/info-tani/:id', auth, infoTaniById);
+router.get('/event-tani/:id', eventTaniById);
+router.get('/info-tani/:id', infoTaniById);
 router.delete('/info-tani/:id', auth, deleteInfoTani);
 router.delete('/event-tani/:id', auth, deleteEventTani);
 router.put('/info-tani/:id', auth, upload.single('fotoBeritaBaru'), updateInfoTani);
