@@ -43,7 +43,7 @@ module.exports = (sequelize, DataTypes) => {
       desa: DataTypes.STRING,
       desaBinaan: DataTypes.STRING,
       kecamatanBinaan: DataTypes.STRING,
-      accountID: DataTypes.UUID
+      accountID: DataTypes.UUID // connect with tbl_akun
     },
     {
       sequelize,

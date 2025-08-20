@@ -24,3 +24,9 @@ module.exports = (sequelize, DataTypes) => {
   );
   return kecamatan;
 };
+/**
+ * Kecamatan → Desa
+       * Relasi: Satu kecamatan memiliki banyak desa.
+       * Penjelasan: Model kecamatan memiliki relasi hasMany ke model desa. Ini berarti setiap data kecamatan bisa terhubung dengan banyak
+         data desa. Sebaliknya, setiap desa pasti memiliki satu kecamatan (belongsTo).
+*/

@@ -13,6 +13,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   DataTanaman.init(
+    // data tanaman petani, data laporan tanaman by kelompok id
     {
       kategori: DataTypes.STRING,
       komoditas: DataTypes.STRING,

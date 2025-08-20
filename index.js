@@ -15,7 +15,6 @@ app.use(
     allowedHeaders: [
       'Content-Type',
       'Authorization',
-      // ADD THESE CACHE CONTROL HEADERS
       'Cache-Control',
       'Pragma',
       'Expires',

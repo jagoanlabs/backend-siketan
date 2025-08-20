@@ -42,7 +42,7 @@ module.exports = (sequelize, DataTypes) => {
       password: DataTypes.STRING,
       email: DataTypes.STRING,
       noTelp: DataTypes.NUMBER,
-      accountID: DataTypes.UUID
+      accountID: DataTypes.UUID // connect with tbl_akun
     },
     {
       sequelize,

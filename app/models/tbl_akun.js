@@ -34,6 +34,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   tbl_akun.init(
+    // inisial tabel, tabel ini memiliki email, no_wa, nama, password, pekerjaan, peran, foto, accountID, isVerified nama model tbl_akun, tableName: 'tbl_akun'
     {
       email: DataTypes.STRING,
       no_wa: DataTypes.STRING,
@@ -53,3 +54,5 @@ module.exports = (sequelize, DataTypes) => {
   );
   return tbl_akun;
 };
+
+// tabel akun sebagai penjembatan/master data antara akun akun penyuluh, petani, operator, penjual

@@ -21,9 +21,9 @@
     "jsonwebtoken": "^9.0.0",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
-    "mysql2": "^3.6.5",
+    "mysql2": "^3.14.3",
     "nodemon": "^2.0.22",
-    "sequelize": "^6.35.1",
+    "sequelize": "^6.37.7",
     "socket.io": "^4.7.1",
     "sqlite3": "^5.1.6",
     "swagger-ui-express": "^4.6.3"

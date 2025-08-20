@@ -22,7 +22,7 @@ module.exports = (sequelize, DataTypes) => {
       noTelp: DataTypes.STRING,
       foto: DataTypes.TEXT,
       alamat: DataTypes.TEXT,
-      accountID: DataTypes.UUID,
+      accountID: DataTypes.UUID, // connect with tbl_akun
       password: DataTypes.STRING
     },
     {
