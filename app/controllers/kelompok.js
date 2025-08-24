@@ -7,10 +7,44 @@ const ExcelJS = require('exceljs');
 const { postActivity } = require('./logActivity');
 
 dotenv.config();
+const getMetaKelompok = async (req, res) => {
+  try {
+    // total kelompok
+    const totalKelompok = await kelompok.count();
+
+    // total gapoktan (unik)
+    const totalGapoktan = await kelompok.count({
+      distinct: true,
+      col: 'gapoktan'
+    });
+
+    // total desa (unik dari kelompok)
+    const totalDesa = await kelompok.count({
+      distinct: true,
+      col: 'desaId'
+    });
+
+    // atau kalau mau hitung semua desa di tabel desa (bukan hanya yg dipakai kelompok)
+    // const totalDesa = await desa.count();
+
+    res.status(200).json({
+      message: 'Meta data kelompok berhasil diperoleh',
+      totalKelompok,
+      totalGapoktan,
+      totalDesa
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message
+    });
+  }
+};
+
 
 const getAllKelompok = async (req, res) => {
   const { peran } = req.user || {};
-  const { page, limit } = req.query;
+  const { page, limit, search } = req.query;
+
   try {
     if (peran !== 'operator super admin' && peran !== 'operator admin') {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
@@ -18,7 +52,25 @@ const getAllKelompok = async (req, res) => {
       const limitFilter = Number(limit) || 10;
       const pageFilter = Number(page) || 1;
 
+      const whereCondition = {};
+
+      // kalau ada query search
+      const searchCondition = search
+        ? {
+            [Op.or]: [
+              { gapoktan: { [Op.like]: `%${search}%` } },
+              { namaKelompok: { [Op.like]: `%${search}%` } },
+              { '$desaData.nama$': { [Op.like]: `%${search}%` } },
+              { '$kecamatanData.nama$': { [Op.like]: `%${search}%` } }
+            ]
+          }
+        : {};
+
       const query = {
+        where: {
+          ...whereCondition,
+          ...searchCondition
+        },
         limit: limitFilter,
         offset: (pageFilter - 1) * limitFilter,
         include: [
@@ -30,15 +82,18 @@ const getAllKelompok = async (req, res) => {
             model: desa,
             as: 'desaData'
           }
-        ]
+        ],
+        distinct: true // supaya count benar ketika pakai include
       };
-      const data = await kelompok.findAll({ ...query });
-      const total = await kelompok.count({ ...query });
+
+      const data = await kelompok.findAll(query);
+      const total = await kelompok.count(query);
+
       res.status(200).json({
         message: 'Data Kelompok Berhasil Diperoleh',
         data,
         total,
-        currentPages: page,
+        currentPages: pageFilter,
         limit: limitFilter,
         maxPages: Math.ceil(total / (limitFilter || 10)),
         from: pageFilter ? (pageFilter - 1) * limitFilter + 1 : 1,
@@ -498,5 +553,6 @@ module.exports = {
   getAllKecamatan,
   getAllDesaInKecamatan,
   changeKecamatanToId,
-  changeDesaToId
+  changeDesaToId,
+  getMetaKelompok
 };

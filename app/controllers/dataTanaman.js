@@ -17,61 +17,70 @@ dotenv.config();
 
 const getAllDataTanaman = async (req, res) => {
   const { peran } = req.user || {};
-  const { limit, page, sortBy, sortType, poktan_id, isExport } = req.query;
+  const { limit, page, sortBy, sortType, poktan_id, isExport, search, kategori, komoditas } =
+    req.query;
 
   try {
     if (peran === 'petani') {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     }
 
-    const limitFilter = Number(limit);
-    const pageFilter = Number(page);
+    const limitFilter = Number(limit) || 10;
+    const pageFilter = Number(page) || 1;
     const isExportFilter = Boolean(isExport);
 
+    // base filter
+    const whereClause = {};
+
+    // filter poktan
+    if (poktan_id && poktan_id !== 'undefined') {
+      whereClause.fk_kelompokId = { [Op.eq]: poktan_id };
+    }
+
+    // filter kategori
+    if (kategori && kategori !== 'undefined') {
+      whereClause.kategori = { [Op.like]: `%${kategori}%` };
+    }
+
+    // filter komoditas
+    if (komoditas && komoditas !== 'undefined') {
+      whereClause.komoditas = { [Op.like]: `%${komoditas}%` };
+    }
+
+    // pencarian umum (nama kategori / komoditas / periodeTanam)
+    if (search && search !== 'undefined') {
+      whereClause[Op.or] = [
+        { kategori: { [Op.like]: `%${search}%` } },
+        { komoditas: { [Op.like]: `%${search}%` } },
+        { periodeTanam: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
     const filter = {
-      include: [
-        {
-          model: kelompok,
-          as: 'kelompok'
-        }
-      ],
+      where: whereClause,
+      include: [{ model: kelompok, as: 'kelompok' }],
       limit: limitFilter,
       offset: (pageFilter - 1) * limitFilter,
       order: [[sortBy || 'id', sortType || 'DESC']]
     };
 
-    if (poktan_id !== 'undefined') {
-      filter.where = {
-        fk_kelompokId: {
-          [Op.eq]: poktan_id
-        }
-      };
-    }
-
     const data = await dataTanaman.findAll(
       isExportFilter
-        ? {
-            include: [
-              {
-                model: kelompok,
-                as: 'kelompok'
-              }
-            ]
-          }
+        ? { where: whereClause, include: [{ model: kelompok, as: 'kelompok' }] }
         : filter
     );
-    const total = await dataTanaman.count(filter);
+    const total = await dataTanaman.count({ where: whereClause });
 
     res.status(200).json({
       message: 'Data berhasil didapatkan.',
       data: {
         data,
         total,
-        currentPages: Number(page),
-        limit: Number(limit),
-        maxPages: Math.ceil(total / Number(limit)),
-        from: Number(page) ? (Number(page) - 1) * Number(limit) + 1 : 1,
-        to: Number(page) ? (Number(page) - 1) * Number(limit) + data.length : data.length,
+        currentPages: pageFilter,
+        limit: limitFilter,
+        maxPages: Math.ceil(total / limitFilter),
+        from: pageFilter ? (pageFilter - 1) * limitFilter + 1 : 1,
+        to: pageFilter ? (pageFilter - 1) * limitFilter + data.length : data.length,
         sortBy: sortBy || 'id',
         sortType: sortType || 'DESC'
       }

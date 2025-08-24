@@ -7,12 +7,13 @@ const {
   loginPetani,
   registerPetani,
   getUserNotVerify,
-  verifikasi,
+  // verifikasi,
   getProfile,
   getDetailProfile,
   updateDetailProfile,
   getPeran,
   ubahPeran,
+  getMetaUserRole,
   opsiPenyuluh,
   opsiPoktan,
   changeKecamatanToId,
@@ -30,7 +31,8 @@ router.get('/profile', getProfile);
 router.get('/detailprofile', auth, getDetailProfile);
 router.post('/updateprofile', auth, upload.single('foto'), updateDetailProfile);
 router.get('/verify', getUserNotVerify);
-router.get('/verify/:id', verifikasi);
+// router.get('/verify/:id', verifikasi);
+router.get('/peran/meta', auth, getMetaUserRole);
 router.get('/peran', auth, getPeran);
 router.put('/peran/:id', auth, ubahPeran);
 router.put('/fix/kecamatan', auth, changeKecamatanToId);

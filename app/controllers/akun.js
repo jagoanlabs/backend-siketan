@@ -16,7 +16,7 @@ const {
 const ApiError = require('../../utils/ApiError');
 const isEmailValid = require('../../utils/emailValidation');
 const imageKit = require('../../midleware/imageKit');
-const { Op, col } = require('sequelize');
+const { Op, col, fn } = require('sequelize');
 
 const crypto = require('crypto');
 const { postActivity } = require('./logActivity');
@@ -956,25 +956,36 @@ const updateDetailProfile = async (req, res) => {
 };
 
 const getPeran = async (req, res) => {
-  const { page, limit } = req.query;
+  const { page, limit, search } = req.query;
   try {
     const limitFilter = Number(limit) || 10;
     const pageFilter = Number(page) || 1;
+
+    // filter pencarian
+    const where = search
+      ? {
+          [Op.or]: [{ nama: { [Op.like]: `%${search}%` } }, { email: { [Op.like]: `%${search}%` } }]
+        }
+      : {};
+
     const query = {
+      where,
       limit: limitFilter,
       offset: (pageFilter - 1) * limitFilter
     };
-    const data = await tblAkun.findAll({ ...query });
-    const total = await tblAkun.count({ ...query });
+
+    const data = await tblAkun.findAll(query);
+    const total = await tblAkun.count({ where });
+
     res.status(200).json({
       message: 'berhasil',
       data,
       total,
-      currentPages: page,
-      limit: Number(limit),
-      maxPages: Math.ceil(total / (Number(limit) || 10)),
-      from: Number(page) ? (Number(page) - 1) * Number(limit) + 1 : 1,
-      to: Number(page) ? (Number(page) - 1) * Number(limit) + data.length : data.length
+      currentPages: pageFilter,
+      limit: limitFilter,
+      maxPages: Math.ceil(total / limitFilter),
+      from: (pageFilter - 1) * limitFilter + 1,
+      to: (pageFilter - 1) * limitFilter + data.length
     });
   } catch (error) {
     res.status(error.statusCode || 500).json({
@@ -1249,6 +1260,41 @@ const changeDesaToId = async (req, res) => {
   }
 };
 
+const getMetaUserRole = async (req, res) => {
+  try {
+    // Hitung total user
+    const totalUser = await tblAkun.count();
+
+    // Hitung user per role dengan group
+    const roleCounts = await tblAkun.findAll({
+      attributes: ['peran', [fn('COUNT', col('id')), 'count']],
+      group: ['peran']
+    });
+
+    // Konversi hasil ke object agar lebih mudah dibaca
+    const roleMap = {};
+    roleCounts.forEach((item) => {
+      roleMap[item.peran] = item.get('count');
+    });
+
+    res.status(200).json({
+      message: 'Meta data user berhasil diperoleh',
+      totalUser,
+      roles: {
+        operator_super_admin: roleMap['operator super admin'] || 0,
+        penyuluh: roleMap['penyuluh'] || 0,
+        operator_poktan: roleMap['operator poktan'] || 0, // ✅ benerin disini
+        operator_admin: roleMap['operator admin'] || 0,
+        petani: roleMap['petani'] || 0
+      }
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   login,
   register,
@@ -1261,6 +1307,7 @@ module.exports = {
   updateDetailProfile,
   getPeran,
   ubahPeran,
+  getMetaUserRole,
   opsiPenyuluh,
   opsiPoktan,
   changeKecamatanToId,

@@ -10,11 +10,13 @@ const {
   getKelompokById,
   editKelompokById,
   changeKecamatanToId,
-  changeDesaToId
+  changeDesaToId,
+  getMetaKelompok
 } = require('../controllers/kelompok');
 
 // router.get();
 router.get('/', auth, getAllKelompok);
+router.get('/meta', auth, getMetaKelompok);
 router.get('/kecamatan', auth, getAllKecamatan);
 router.get('/desa', auth, getAllDesaInKecamatan);
 router.get('/:id', auth, getKelompokById);

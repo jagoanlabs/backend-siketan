@@ -8,7 +8,7 @@ const {
   kecamatan,
   desa
 } = require('../models');
-const { Op } = require('sequelize');
+const { Op, fn, col } = require('sequelize');
 
 const usersAll = async (req, res) => {
   const { peran } = req.user || {};
@@ -45,25 +45,45 @@ const usersAll = async (req, res) => {
 };
 
 const userVerify = async (req, res) => {
-  const { page, limit, verified } = req.query;
+  const { page, limit, search, sort } = req.query;
   const { peran } = req.user || {};
 
-  const orderFilter = !['true', 'false'].includes(verified)
-    ? [['id', 'ASC']]
-    : [
-        ['isVerified', verified === 'true' ? 'DESC' : 'ASC'],
-        ['id', 'ASC']
-      ];
-
-  console.log(orderFilter);
-
   try {
-    // Check if the user has restricted roles
-    if (peran === 'petani' || peran === 'penyuluh' || peran === 'operator poktan') {
+    // Restriksi role
+    if (['petani', 'penyuluh', 'operator poktan'].includes(peran)) {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     }
 
-    // Build the query with pagination
+    const pageFilter = Number(page) || 1;
+    const limitFilter = Number(limit) || 10;
+
+    // Sorting logic
+    let orderFilter = [['id', 'ASC']]; // default
+    if (sort === 'verified_desc') {
+      orderFilter = [
+        ['isVerified', 'DESC'],
+        ['id', 'ASC']
+      ];
+    } else if (sort === 'verified_asc') {
+      orderFilter = [
+        ['isVerified', 'ASC'],
+        ['id', 'ASC']
+      ];
+    }
+
+    // Search condition
+    const searchCondition = search
+      ? {
+          [Op.or]: [
+            { nama: { [Op.like]: `%${search}%` } },
+            { no_wa: { [Op.like]: `%${search}%` } },
+            { email: { [Op.like]: `%${search}%` } },
+            { '$dataPetani.NIK$': { [Op.like]: `%${search}%` } }
+          ]
+        }
+      : {};
+
+    // Query data
     const query = {
       include: [
         {
@@ -73,34 +93,46 @@ const userVerify = async (req, res) => {
         }
       ],
       where: {
-        peran: {
-          [Op.not]: 'super admin'
-        }
+        peran: { [Op.not]: 'super admin' },
+        ...searchCondition
       },
       attributes: ['id', 'nama', 'peran', 'no_wa', 'email', 'isVerified'],
       order: orderFilter,
-      limit: Number(limit),
-      offset: (Number(page) - 1) * Number(limit)
+      limit: limitFilter,
+      offset: (pageFilter - 1) * limitFilter,
+      distinct: true // supaya count benar kalau ada include
     };
 
-    // Fetch the data using Sequelize
     const data = await tbl_akun.findAll(query);
-    const total = await tbl_akun.count(query);
+
+    // untuk total, lebih aman pisahkan
+    const total = await tbl_akun.count({
+      include: [
+        {
+          model: dataPetani,
+          required: true
+        }
+      ],
+      where: {
+        peran: { [Op.not]: 'super admin' },
+        ...searchCondition
+      },
+      distinct: true
+    });
 
     if (data.length === 0) {
       throw new ApiError(404, 'Data tidak ditemukan');
     }
 
-    // Respond with the data
     res.status(200).json({
       message: 'Data berhasil diambil',
       data,
       total,
-      currentPages: Number(page),
-      limit: Number(limit),
-      maxPages: Math.ceil(total / Number(limit)),
-      from: Number(page) ? (Number(page) - 1) * Number(limit) + 1 : 1,
-      to: Number(page) ? (Number(page) - 1) * Number(limit) + data.length : data.length
+      currentPages: pageFilter,
+      limit: limitFilter,
+      maxPages: Math.ceil(total / limitFilter),
+      from: (pageFilter - 1) * limitFilter + 1,
+      to: (pageFilter - 1) * limitFilter + data.length
     });
   } catch (error) {
     res.status(error.statusCode || 500).json({
@@ -223,7 +255,7 @@ const deleteUser = async (req, res) => {
   const { id } = req.params;
   const { peran } = req.user;
   try {
-    if (peran !== 'super admin' && peran !== 'admin') {
+    if (peran !== 'operator super admin' && peran !== 'super admin' && peran !== 'admin') {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     } else {
       const data = await tbl_akun.findOne({
@@ -266,11 +298,38 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const getMetaUser = async (req, res) => {
+  try {
+    const totalUser = await tbl_akun.count();
+    const totalVerifiedUser = await tbl_akun.count({
+      where: {
+        isVerified: true
+      }
+    });
+    const totalUnverifiedUser = await tbl_akun.count({
+      where: {
+        isVerified: false
+      }
+    });
+    res.status(200).json({
+      message: 'Meta data user berhasil diperoleh',
+      totalUser,
+      totalVerifiedUser,
+      totalUnverifiedUser
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   usersAll,
   searchPoktan,
   searchPetani,
   userVerify,
+  getMetaUser,
   updateAccount,
   deleteUser
 };

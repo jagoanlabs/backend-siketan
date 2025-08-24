@@ -2,16 +2,29 @@ const { eventTani: EventTani, beritaTani } = require('../models');
 const ApiError = require('../../utils/ApiError');
 const imageKit = require('../../midleware/imageKit');
 const { postActivity } = require('./logActivity');
+const { Op } = require('sequelize');
 
 const infoTani = async (req, res) => {
   try {
-    const { category } = req.query;
+    const { category, search } = req.query; // ambil search dari query params
 
-    const filter = category ? { where: { kategori: category } } : {};
+    const whereClause = {};
+
+    if (category) {
+      whereClause.kategori = category;
+    }
+
+    if (search) {
+      whereClause.judul = {
+        [Op.like]: `%${search}%` // mencari judul yang mengandung kata pencarian
+      };
+    }
+
     const data = await beritaTani.findAll({
-      order: [['id', 'DESC']],
-      ...filter
+      where: whereClause,
+      order: [['id', 'DESC']]
     });
+
     res.status(200).json({
       message: 'Berhasil Mendapatkan Data Info Tani',
       infotani: data
@@ -22,6 +35,7 @@ const infoTani = async (req, res) => {
     });
   }
 };
+
 const infoTaniById = async (req, res) => {
   const { id } = req.params;
   try {
@@ -136,11 +150,17 @@ const tambahEventTani = async (req, res) => {
     if (peran === 'petani') {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     } else {
-      const { namaKegiatan, tanggalAcara, waktuAcara, tempat, peserta, isi } = req.body;
+      let { namaKegiatan, tanggalAcara, waktuAcara, tempat, peserta, isi } = req.body;
       const { file } = req;
 
       if (!namaKegiatan) throw new ApiError(400, 'namaKegiatan tidak boleh kosong.');
       if (!tanggalAcara) throw new ApiError(400, 'tanggalAcara tidak boleh kosong.');
+
+      // Jika tanggal dalam format DD/MM/YYYY, konversi ke YYYY-MM-DD
+      if (tanggalAcara && tanggalAcara.includes('/')) {
+        const [day, month, year] = tanggalAcara.split('/');
+        tanggalAcara = `${year}-${month}-${day}`;
+      }
 
       let urlImg = '';
       if (file) {
@@ -346,7 +366,7 @@ const updateInfoTani = async (req, res) => {
 const updateEventTani = async (req, res) => {
   try {
     const { id } = req.user;
-    const { namaKegiatan, tanggalAcara, waktuAcara, tempat, peserta, createdBy, isi } = req.body;
+    let { namaKegiatan, tanggalAcara, waktuAcara, tempat, peserta, createdBy, isi } = req.body;
     const eventId = req.params.id;
     const data = await EventTani.findOne({
       where: {
@@ -354,6 +374,12 @@ const updateEventTani = async (req, res) => {
       }
     });
     if (!data) throw new ApiError(400, 'data tidak ditemukan.');
+    // Jika tanggal dalam format DD/MM/YYYY, konversi ke YYYY-MM-DD
+    if (tanggalAcara && tanggalAcara.includes('/')) {
+      const [day, month, year] = tanggalAcara.split('/');
+      tanggalAcara = `${year}-${month}-${day}`;
+    }
+
     const { file } = req;
     if (file) {
       const validFormat =
