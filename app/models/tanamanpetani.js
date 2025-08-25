@@ -9,9 +9,7 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      this.hasMany(models.laporanTanam, {
-        foreignKey: 'tanamanPetaniId'
-      });
+      this.hasMany(models.laporanTanam, { foreignKey: 'tanamanPetaniId' });
       this.belongsTo(models.dataPetani, { foreignKey: 'fk_petaniId' });
     }
   }
@@ -28,11 +26,7 @@ module.exports = (sequelize, DataTypes) => {
       prakiraanProduksiPanen: DataTypes.INTEGER,
       prakiraanBulanPanen: DataTypes.STRING
     },
-    {
-      sequelize,
-      paranoid: true,
-      modelName: 'tanamanPetani'
-    }
+    { sequelize, paranoid: true, modelName: 'tanamanPetani' }
   );
   return tanamanPetani;
 };

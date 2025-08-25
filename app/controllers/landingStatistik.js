@@ -50,35 +50,17 @@ const getLandingStatistik = async (req, res) => {
   try {
     const { tahun = new Date().getFullYear() } = req.query;
 
-    const jumlahPetani = await dataPetani.count({
-      where: {
-        deletedAt: null
-      }
-    });
+    const jumlahPetani = await dataPetani.count({ where: { deletedAt: null } });
 
     const jumlahGapoktan = await kelompok.count();
 
-    const jumlahPenyuluh = await dataPenyuluh.count({
-      where: {
-        deletedAt: null
-      }
-    });
+    const jumlahPenyuluh = await dataPenyuluh.count({ where: { deletedAt: null } });
 
-    const areaPertanian = await tanamanPetani.sum('luasLahan', {
-      where: {
-        deletedAt: null
-      }
-    });
+    const areaPertanian = await tanamanPetani.sum('luasLahan', { where: { deletedAt: null } });
 
     const komoditasData = await tanamanPetani.findAll({
       attributes: [[sequelize.fn('DISTINCT', sequelize.col('komoditas')), 'komoditas']],
-      where: {
-        deletedAt: null,
-        komoditas: {
-          [Op.not]: null,
-          [Op.ne]: ''
-        }
-      },
+      where: { deletedAt: null, komoditas: { [Op.not]: null, [Op.ne]: '' } },
       raw: true
     });
     const jumlahKomoditas = komoditasData.length;
@@ -92,13 +74,8 @@ const getLandingStatistik = async (req, res) => {
       ],
       where: {
         deletedAt: null,
-        createdAt: {
-          [Op.between]: [new Date(`${tahun}-01-01`), new Date(`${tahun}-12-31`)]
-        },
-        komoditas: {
-          [Op.not]: null,
-          [Op.ne]: ''
-        }
+        createdAt: { [Op.between]: [new Date(`${tahun}-01-01`), new Date(`${tahun}-12-31`)] },
+        komoditas: { [Op.not]: null, [Op.ne]: '' }
       },
       group: [sequelize.fn('MONTH', sequelize.col('createdAt')), 'komoditas'],
       raw: true
@@ -159,30 +136,28 @@ const getLandingStatistik = async (req, res) => {
       return monthData;
     });
 
-    res.status(200).json({
-      success: true,
-      message: 'Data statistik landing page berhasil diambil',
-      data: {
-        ringkasan: {
-          jumlahPetani: jumlahPetani || 0,
-          jumlahGapoktan: jumlahGapoktan || 0,
-          jumlahPenyuluh: jumlahPenyuluh || 0,
-          areaPertanian: areaPertanian ? parseFloat(areaPertanian) : 0,
-          jumlahKomoditas: jumlahKomoditas || 0
-        },
-        commodityData: commodityData
-      }
-    });
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: 'Data statistik landing page berhasil diambil',
+        data: {
+          ringkasan: {
+            jumlahPetani: jumlahPetani || 0,
+            jumlahGapoktan: jumlahGapoktan || 0,
+            jumlahPenyuluh: jumlahPenyuluh || 0,
+            areaPertanian: areaPertanian ? parseFloat(areaPertanian) : 0,
+            jumlahKomoditas: jumlahKomoditas || 0
+          },
+          commodityData: commodityData
+        }
+      });
   } catch (error) {
     console.error('Error getting landing statistics:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Gagal mengambil data statistik',
-      error: error.message
-    });
+    res
+      .status(500)
+      .json({ success: false, message: 'Gagal mengambil data statistik', error: error.message });
   }
 };
 
-module.exports = {
-  getLandingStatistik
-};
+module.exports = { getLandingStatistik };
