@@ -9,7 +9,8 @@ const {
   getDetailProduk,
   listProduk,
   getDetailProdukByName,
-  listToko
+  listToko,
+  metaProductPetani
 } = require('../controllers/tokoTani');
 
 router.post('/daftar-penjual/:id', auth, upload.single('fotoTanaman'), tambahDaftarPenjual);
@@ -20,7 +21,7 @@ router.get('/product-petani/:id', getDetailProduk);
 router.get('/list-product/:id', listProduk); //list product by id account
 router.get('/list-toko', listToko);
 router.get('/list-product/:name', getDetailProdukByName);
-
 router.delete('/product-petani/:id', auth, deleteProduk);
+router.get('/meta/product-petani', metaProductPetani);
 
 module.exports = router;

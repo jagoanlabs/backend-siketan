@@ -9,8 +9,8 @@ const {
   dataPetani,
   kecamatan,
   desa,
-  kecamatanBinaan,
-  desaBinaan
+  kecamatanBinaan: KecamatanBinaanModel,
+  desaBinaan: DesaBinaanModel
 } = require('../models');
 const ApiError = require('../../utils/ApiError');
 const imageKit = require('../../midleware/imageKit');
@@ -25,6 +25,7 @@ dotenv.config();
 
 const tambahDataPenyuluh = async (req, res) => {
   const { peran, id } = req.user || {};
+  console.log('id', id);
   try {
     if (peran === 'petani' || peran === 'penyuluh') {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
@@ -46,7 +47,8 @@ const tambahDataPenyuluh = async (req, res) => {
         selectedKelompokIds,
         pekerjaan = ''
       } = req.body;
-      const kelompokArray = selectedKelompokIds.split(',');
+      console.log(req.body);
+      // const kelompokArray = selectedKelompokIds.split(',');
       const hashedPassword = bcrypt.hashSync(password, 10);
       const accountID = crypto.randomUUID();
       const { file } = req;
@@ -112,9 +114,17 @@ const tambahDataPenyuluh = async (req, res) => {
       {
         /* Menambahkan penyuluh yang didaftarkan */
       }
-      let kecamatanData;
-      let desaData;
-      if (!kecamatanId) {
+      let kecamatanData = null;
+      let desaData = null;
+
+      // Jika kecamatanId provided, cari datanya
+      if (kecamatanId) {
+        kecamatanData = await kecamatan.findByPk(kecamatanId);
+        if (!kecamatanData) {
+          throw new ApiError(400, `Kecamatan dengan ID ${kecamatanId} tidak ditemukan`);
+        }
+      } else if (inputKecamatan) {
+        // Jika nama kecamatan provided, cari by name
         kecamatanData = await kecamatan.findOne({
           where: { nama: inputKecamatan }
         });
@@ -122,7 +132,14 @@ const tambahDataPenyuluh = async (req, res) => {
           throw new ApiError(400, `Kecamatan ${inputKecamatan} tidak ditemukan`);
         }
       }
-      if (!desaId) {
+
+      // Logic yang sama untuk desa
+      if (desaId) {
+        desaData = await desa.findByPk(desaId);
+        if (!desaData) {
+          throw new ApiError(400, `Desa dengan ID ${desaId} tidak ditemukan`);
+        }
+      } else if (inputDesa) {
         desaData = await desa.findOne({
           where: { nama: inputDesa }
         });
@@ -144,31 +161,114 @@ const tambahDataPenyuluh = async (req, res) => {
         desaBinaan: desaBinaan,
         kecamatanBinaan,
         accountID: accountID,
-        kecamatanId: kecamatanData.id,
-        desaId: desaData.id
+        kecamatanId: kecamatanData ? kecamatanData.id : null,
+        desaId: desaData ? desaData.id : null
       });
-      // Convert each element of kelompokArray to an integer
-      const integerKelompokArray = kelompokArray.map((kelompokId) => parseInt(kelompokId, 10));
+      // // Convert each element of kelompokArray to an integer
+      // const integerKelompokArray = kelompokArray.map((kelompokId) => parseInt(kelompokId, 10));
 
-      // Loop through the integerKelompokArray
-      integerKelompokArray.forEach(async (kelompokId) => {
-        // Do something with each kelompokId
-        const dataKelompok = await kelompok.findOne({
-          where: { id: kelompokId }
-        });
-        if (dataKelompok) {
-          await kelompok.update(
-            {
-              penyuluh: newPenyuluh.id
-            },
-            {
-              where: {
-                id: dataKelompok.id
-              }
-            }
-          );
+      // // Loop through the integerKelompokArray
+      // integerKelompokArray.forEach(async (kelompokId) => {
+      //   // Do something with each kelompokId
+      //   const dataKelompok = await kelompok.findOne({
+      //     where: { id: kelompokId }
+      //   });
+      //   if (dataKelompok) {
+      //     await kelompok.update(
+      //       {
+      //         penyuluh: newPenyuluh.id
+      //       },
+      //       {
+      //         where: {
+      //           id: dataKelompok.id
+      //         }
+      //       }
+      //     );
+      //   }
+      // });
+
+      // ============ TAMBAHKAN CODE INI ============
+      // CREATE KECAMATAN BINAAN
+      if (kecamatanBinaan) {
+        try {
+          // Cari kecamatan berdasarkan nama
+          const kecamatanBinaanData = await kecamatan.findOne({
+            where: { nama: kecamatanBinaan }
+          });
+
+          if (kecamatanBinaanData) {
+            await KecamatanBinaanModel.create({
+              penyuluhId: newPenyuluh.id,
+              kecamatanId: kecamatanBinaanData.id
+            });
+            console.log('Kecamatan binaan created:', kecamatanBinaanData.nama);
+          }
+        } catch (kecamatanError) {
+          console.error('Error creating kecamatan binaan:', kecamatanError);
         }
-      });
+      }
+
+      // CREATE DESA BINAAN
+
+      // 2. CREATE DESA BINAAN
+      if (desaBinaan && desaBinaan.trim() !== '') {
+        try {
+          // ✅ Split by comma and trim each nama desa
+          const desaBinaanArray = desaBinaan
+            .split(',')
+            .map((nama) => nama.trim())
+            .filter((nama) => nama !== '');
+
+          console.log('Processing desa binaan:', desaBinaanArray);
+
+          for (const namaDesaBinaan of desaBinaanArray) {
+            // ✅ Find desa by NAMA (not ID)
+            const desaData = await desa.findOne({
+              where: { nama: namaDesaBinaan }
+            });
+
+            if (desaData) {
+              await DesaBinaanModel.create({
+                // ✅ Using renamed model
+                penyuluhId: newPenyuluh.id,
+                desaId: desaData.id
+              });
+              console.log('✅ Desa binaan created:', namaDesaBinaan, '(ID:', desaData.id, ')');
+            } else {
+              console.log('⚠️ Desa binaan not found:', namaDesaBinaan);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error creating desa binaan:', error);
+        }
+      }
+
+      // UPDATE KELOMPOK (jika ada selectedKelompokIds)
+      if (selectedKelompokIds && selectedKelompokIds.trim() !== '') {
+        try {
+          const kelompokIdArray = selectedKelompokIds
+            .split(',')
+            .map((id) => parseInt(id.trim()))
+            .filter((id) => !isNaN(id));
+
+          console.log('Processing kelompok IDs:', kelompokIdArray);
+
+          for (const kelompokId of kelompokIdArray) {
+            const kelompokData = await kelompok.findByPk(kelompokId);
+            if (kelompokData) {
+              await kelompokData.update({
+                penyuluh: newPenyuluh.id
+              });
+              console.log('✅ Kelompok updated:', kelompokId);
+            } else {
+              console.log('⚠️ Kelompok not found:', kelompokId);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error updating kelompok:', error);
+        }
+      }
+      // ============ END OF NEW CODE ============
 
       postActivity({
         user_id: id,
@@ -176,7 +276,6 @@ const tambahDataPenyuluh = async (req, res) => {
         type: 'DATA PENYULUH',
         detail_id: newPenyuluh.id
       });
-
       res.status(200).json({
         message: 'berhasil menambahkan data Penyuluh',
         newPenyuluh,
@@ -294,7 +393,7 @@ const opsiPenyuluh = async (req, res) => {
         { model: kecamatan, as: 'kecamatanData' },
         { model: desa, as: 'desaData' },
         {
-          model: kecamatanBinaan,
+          model: KecamatanBinaanModel,
           as: 'kecamatanBinaanData',
           include: [
             {
@@ -303,7 +402,7 @@ const opsiPenyuluh = async (req, res) => {
           ]
         },
         {
-          model: desaBinaan,
+          model: DesaBinaanModel,
           as: 'desaBinaanData',
           include: [
             {
@@ -326,13 +425,16 @@ const opsiPenyuluh = async (req, res) => {
 
 const daftarPenyuluh = async (req, res) => {
   const { peran } = req.user || {};
-  const { page, limit } = req.query;
+  const { page = 1, limit = 10, search = '' } = req.query;
+
   try {
     if (peran === 'petani' || peran === 'penyuluh') {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     }
-    const limitFilter = Number(limit) || 10;
-    const pageFilter = Number(page) || 1;
+
+    const limitFilter = Number(limit);
+    const pageFilter = Number(page);
+
     const query = {
       limit: limitFilter,
       offset: (pageFilter - 1) * limitFilter,
@@ -340,36 +442,44 @@ const daftarPenyuluh = async (req, res) => {
         { model: kecamatan, as: 'kecamatanData' },
         { model: desa, as: 'desaData' },
         {
-          model: kecamatanBinaan,
+          model: KecamatanBinaanModel,
           as: 'kecamatanBinaanData',
-          include: [
-            {
-              model: kecamatan
-            }
-          ]
+          include: [{ model: kecamatan }]
         },
         {
-          model: desaBinaan,
+          model: DesaBinaanModel,
           as: 'desaBinaanData',
-          include: [
-            {
-              model: desa
-            }
-          ]
+          include: [{ model: desa }]
         }
-      ]
+      ],
+      where: {}
     };
-    const data = await dataPenyuluh.findAll({ ...query });
-    const total = await dataPenyuluh.count({});
+
+    // kalau ada search, tambahin filter
+    if (search) {
+      query.where = {
+        [Op.or]: [
+          { nik: { [Op.like]: `%${search}%` } }, // cari NIK
+          { nama: { [Op.like]: `%${search}%` } }, // cari nama
+          { noTelp: { [Op.like]: `%${search}%` } } // cari kontak
+        ]
+      };
+    }
+
+    const data = await dataPenyuluh.findAll(query);
+    const total = await dataPenyuluh.count({
+      where: query.where // count sesuai filter
+    });
+
     res.status(200).json({
       message: 'Semua Data Penyuluh',
       data,
       total,
-      currentPages: page,
+      currentPages: pageFilter,
       limit: limitFilter,
-      maxPages: Math.ceil(total / (limitFilter || 10)),
-      from: pageFilter ? (pageFilter - 1) * limitFilter + 1 : 1,
-      to: pageFilter ? (pageFilter - 1) * limitFilter + data.length : data.length
+      maxPages: Math.ceil(total / limitFilter),
+      from: (pageFilter - 1) * limitFilter + 1,
+      to: (pageFilter - 1) * limitFilter + data.length
     });
   } catch (error) {
     res.status(error.statusCode || 500).json({
@@ -792,7 +902,7 @@ const daftarPenyuluhById = async (req, res) => {
         { model: kecamatan, as: 'kecamatanData' },
         { model: desa, as: 'desaData' },
         {
-          model: kecamatanBinaan,
+          model: KecamatanBinaanModel,
           as: 'kecamatanBinaanData',
           include: [
             {
@@ -801,7 +911,7 @@ const daftarPenyuluhById = async (req, res) => {
           ]
         },
         {
-          model: desaBinaan,
+          model: DesaBinaanModel,
           as: 'desaBinaanData',
           include: [
             {
@@ -1262,7 +1372,7 @@ const refactorWilayahBinaan = async (req, res) => {
         where: literal('kecamatanBinaanData.id IS NULL AND kecamatanBinaan != ""'),
         include: [
           {
-            model: kecamatanBinaan,
+            model: KecamatanBinaanModel,
             as: 'kecamatanBinaanData',
             required: false
           }
@@ -1273,7 +1383,7 @@ const refactorWilayahBinaan = async (req, res) => {
         where: literal('desaBinaanData.id IS NULL AND desaBinaan != ""'),
         include: [
           {
-            model: desaBinaan,
+            model: DesaBinaanModel,
             as: 'desaBinaanData',
             required: false
           }
@@ -1308,7 +1418,7 @@ const refactorWilayahBinaan = async (req, res) => {
             //   kecamatanBinaanData,
             //   penyuluhId: penyuluh.id
             // });
-            await kecamatanBinaan.create({
+            await KecamatanBinaanModel.create({
               kecamatanId: kecamatanBinaanData.id,
               penyuluhId: penyuluh.id
             });
@@ -1342,7 +1452,7 @@ const refactorWilayahBinaan = async (req, res) => {
             //   desaBinaanData,
             //   penyuluhId: penyuluh.id
             // });
-            await desaBinaan.create({
+            await DesaBinaanModel.create({
               desaId: desaBinaanData.id,
               penyuluhId: penyuluh.id
             });
@@ -1395,7 +1505,7 @@ const tambahWilayahBinaan = async (req, res) => {
       if (!kecamatanData) {
         throw new ApiError(400, 'Kecamatan tidak ditemukan');
       }
-      await kecamatanBinaan.create({
+      await KecamatanBinaanModel.create({
         kecamatanId: wilayahId,
         penyuluhId: penyuluhId
       });
@@ -1408,7 +1518,7 @@ const tambahWilayahBinaan = async (req, res) => {
       if (!desaData) {
         throw new ApiError(400, 'Desa tidak ditemukan');
       }
-      await desaBinaan.create({
+      await DesaBinaanModel.create({
         desaId: desaData.id,
         penyuluhId: penyuluhId
       });
@@ -1434,14 +1544,14 @@ const deleteWilayahBinaan = async (req, res) => {
     }
 
     if (type === 'kecamatan') {
-      await kecamatanBinaan.destroy({
+      await KecamatanBinaanModel.destroy({
         where: {
           kecamatanId: wilayahId,
           penyuluhId
         }
       });
     } else {
-      await desaBinaan.destroy({
+      await DesaBinaanModel.destroy({
         where: {
           desaId: wilayahId,
           penyuluhId
