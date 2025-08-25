@@ -2,6 +2,7 @@ const { dataPenyuluh, penjual, tbl_akun: tblAkun, dataPetani } = require('../mod
 const ApiError = require('../../utils/ApiError');
 const imageKit = require('../../midleware/imageKit');
 const { postActivity } = require('./logActivity');
+const { Op } = require('sequelize');
 
 const tambahDaftarPenjual = async (req, res) => {
   try {
@@ -126,10 +127,12 @@ const tambahDaftarPenjual = async (req, res) => {
 };
 
 const productPetani = async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
+  const { page = 1, limit = 10, search = '' } = req.query;
+
   try {
     const limitFilter = Number(limit);
     const pageFilter = Number(page);
+
     const query = {
       include: [
         {
@@ -137,31 +140,40 @@ const productPetani = async (req, res) => {
           attributes: {
             exclude: ['password']
           },
-          include: [
-            {
-              model: dataPetani
-            },
-            {
-              model: dataPenyuluh
-            }
-          ]
+          include: [{ model: dataPetani }, { model: dataPenyuluh }]
         }
       ],
+      where: {},
       limit: limitFilter,
       offset: (pageFilter - 1) * limitFilter
     };
 
+    // kalau ada search, filter namaProduct (penjual) atau namaLengkap (tblAkun)
+    if (search) {
+      query.where = {
+        [Op.or]: [
+          { namaProducts: { [Op.like]: `%${search}%` } }, // cari di penjual
+          { '$tbl_akun.nama$': { [Op.like]: `%${search}%` } } // cari di relasi tblAkun
+        ]
+      };
+    }
+
     const data = await penjual.findAll(query);
-    const total = await penjual.count(query);
+
+    const total = await penjual.count({
+      ...query,
+      distinct: true // biar nggak double count karena join
+    });
+
     res.status(200).json({
       message: 'Berhasil Mendapatkan Product Petani',
       data,
       total,
-      currentPages: Number(page),
-      limit: Number(limit),
-      maxPages: Math.ceil(total / Number(limit)),
-      from: Number(page) ? (Number(page) - 1) * Number(limit) + 1 : 1,
-      to: Number(page) ? (Number(page) - 1) * Number(limit) + data.length : data.length
+      currentPages: pageFilter,
+      limit: limitFilter,
+      maxPages: Math.ceil(total / limitFilter),
+      from: (pageFilter - 1) * limitFilter + 1,
+      to: (pageFilter - 1) * limitFilter + data.length
     });
   } catch (error) {
     res.status(error.statusCode || 500).json({
