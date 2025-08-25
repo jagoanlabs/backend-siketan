@@ -31,12 +31,7 @@ const getAllTanamanPetani = async (req, res) => {
     const isExportFilter = Boolean(isExport);
 
     const query = {
-      include: [
-        {
-          model: dataPetani,
-          as: 'dataPetani'
-        }
-      ],
+      include: [{ model: dataPetani, as: 'dataPetani' }],
       limit: limitFilter,
       offset: (pageFilter - 1) * limitFilter
       // limit: parseInt(limit),
@@ -54,17 +49,9 @@ const getAllTanamanPetani = async (req, res) => {
                 model: dataPetani,
                 as: 'dataPetani',
                 include: [
-                  {
-                    model: kelompok
-                  },
-                  {
-                    model: kecamatan,
-                    as: 'kecamatanData'
-                  },
-                  {
-                    model: desa,
-                    as: 'desaData'
-                  }
+                  { model: kelompok },
+                  { model: kecamatan, as: 'kecamatanData' },
+                  { model: desa, as: 'desaData' }
                 ]
               }
             ]
@@ -74,20 +61,20 @@ const getAllTanamanPetani = async (req, res) => {
     const total = await tanamanPetani.count({ ...query });
     // { ...query } can be replaced with 'query' since it's the same object and don't need to be spread using '...'
 
-    res.status(200).json({
-      message: 'Data berhasil didapatkan.',
-      data,
-      total,
-      currentPages: Number(page),
-      limit: Number(limit),
-      maxPages: Math.ceil(total / Number(limit)),
-      from: Number(page) ? (Number(page) - 1) * Number(limit) + 1 : 1,
-      to: Number(page) ? (Number(page) - 1) * Number(limit) + data.length : data.length
-    });
+    res
+      .status(200)
+      .json({
+        message: 'Data berhasil didapatkan.',
+        data,
+        total,
+        currentPages: Number(page),
+        limit: Number(limit),
+        maxPages: Math.ceil(total / Number(limit)),
+        from: Number(page) ? (Number(page) - 1) * Number(limit) + 1 : 1,
+        to: Number(page) ? (Number(page) - 1) * Number(limit) + data.length : data.length
+      });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -97,11 +84,7 @@ const getTopTanamanPetani = async (req, res) => {
     const limitFilter = Number(limit) || 10;
     const pageFilter = Number(page) || 1;
 
-    const whereQuery = {
-      createdAt: {
-        [Op.gte]: moment().subtract(30, 'days').toDate()
-      }
-    };
+    const whereQuery = { createdAt: { [Op.gte]: moment().subtract(30, 'days').toDate() } };
 
     const query = {
       limit: 30,
@@ -119,50 +102,36 @@ const getTopTanamanPetani = async (req, res) => {
               model: kelompok,
               as: 'kelompok',
               include: [
-                {
-                  model: kecamatan,
-                  as: 'kecamatanData'
-                },
-                {
-                  model: desa,
-                  as: 'desaData'
-                }
+                { model: kecamatan, as: 'kecamatanData' },
+                { model: desa, as: 'desaData' }
               ]
             },
-            {
-              model: kecamatan,
-              as: 'kecamatanData'
-            },
-            {
-              model: desa,
-              as: 'desaData'
-            }
+            { model: kecamatan, as: 'kecamatanData' },
+            { model: desa, as: 'desaData' }
           ]
         }
       ]
     };
 
     const data = await tanamanPetani.findAll(query);
-    const total = await tanamanPetani.count({
-      where: whereQuery
-    });
+    const total = await tanamanPetani.count({ where: whereQuery });
     const limitedTotal = total > 30 ? 30 : total;
     const slicedData = data.slice((pageFilter - 1) * limitFilter, pageFilter * limitFilter);
 
-    res.status(200).json({
-      message: 'Berhasil mendapatkan data tanaman petani',
-      data: slicedData,
-      total: limitedTotal,
-      currentPages: pageFilter,
-      limit: limitFilter,
-      maxPages: Math.ceil(limitedTotal / limitFilter),
-      from: (pageFilter - 1) * limitFilter + 1,
-      to: (pageFilter - 1) * limitFilter + data.length
-    });
+    res
+      .status(200)
+      .json({
+        message: 'Berhasil mendapatkan data tanaman petani',
+        data: slicedData,
+        total: limitedTotal,
+        currentPages: pageFilter,
+        limit: limitFilter,
+        maxPages: Math.ceil(limitedTotal / limitFilter),
+        from: (pageFilter - 1) * limitFilter + 1,
+        to: (pageFilter - 1) * limitFilter + data.length
+      });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -196,9 +165,7 @@ const tambahDataTanamanPetani = async (req, res) => {
     if (!prakiraanBulanPanen) throw new ApiError(400, 'Prakiraan bulan panen tidak boleh kosong.');
     if (!fk_petaniId) throw new ApiError(400, 'Kelompok tidak boleh kosong.');
 
-    const Petani = await dataPetani.findOne({
-      where: { id: fk_petaniId }
-    });
+    const Petani = await dataPetani.findOne({ where: { id: fk_petaniId } });
     if (!Petani) throw new ApiError(400, 'Data Petani tidak ditemukan');
 
     const data = await tanamanPetani.create({
@@ -215,14 +182,9 @@ const tambahDataTanamanPetani = async (req, res) => {
       fk_petaniId
     });
 
-    res.status(200).json({
-      message: 'Data berhasil ditambahkan.',
-      data
-    });
+    res.status(200).json({ message: 'Data berhasil ditambahkan.', data });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -234,18 +196,11 @@ const deleteDatatanamanPetani = async (req, res) => {
     if (peran !== 'operator super admin') {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     }
-    const data = await tanamanPetani.destroy({
-      where: { id }
-    });
+    const data = await tanamanPetani.destroy({ where: { id } });
 
-    res.status(200).json({
-      message: 'Data berhasil dihapus.',
-      data
-    });
+    res.status(200).json({ message: 'Data berhasil dihapus.', data });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -265,55 +220,34 @@ const getTanamanPetaniStatistically = async (req, res) => {
       ],
       group: [lineChartType, Sequelize.fn('DATE', Sequelize.col('createdAt'))],
       where: {
-        [lineChartType]: {
-          [Op.not]: null
-        },
-        createdAt: {
-          [Op.between]: [date_starts, date_ends]
-        }
+        [lineChartType]: { [Op.not]: null },
+        createdAt: { [Op.between]: [date_starts, date_ends] }
       },
-      order: [[Sequelize.col('createdAt'), 'ASC']]
+      order: [[Sequelize.fn('DATE', Sequelize.col('createdAt')), 'ASC']]
     });
     const pieChart = await dataTanaman.findAll({
       attributes: [pieChartType, [Sequelize.fn('COUNT', Sequelize.col(pieChartType)), 'count']],
       group: [pieChartType],
       where: {
-        [pieChartType]: {
-          [Op.not]: null
-        },
-        createdAt: {
-          [Op.between]: [date_starts, date_ends]
-        }
+        [pieChartType]: { [Op.not]: null },
+        createdAt: { [Op.between]: [date_starts, date_ends] }
       }
     });
     const latest = await tanamanPetani.findAll({
       include: [
-        {
-          model: dataPetani,
-          as: 'dataPetani',
-          include: [
-            {
-              model: kelompok,
-              as: 'kelompok'
-            }
-          ]
-        }
+        { model: dataPetani, as: 'dataPetani', include: [{ model: kelompok, as: 'kelompok' }] }
       ],
       order: [[Sequelize.col('createdAt'), 'DESC']],
       limit: 5
     });
-    res.status(200).json({
-      message: 'Data berhasil didapatkan.',
-      data: {
-        statistik: lineChart,
-        summary: pieChart,
-        latest
-      }
-    });
+    res
+      .status(200)
+      .json({
+        message: 'Data berhasil didapatkan.',
+        data: { statistik: lineChart, summary: pieChart, latest }
+      });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -327,18 +261,14 @@ const getAllTanamanPetaniByPetani = async (req, res) => {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     }
 
-    const petani = await dataPetani.findOne({
-      where: { id }
-    });
+    const petani = await dataPetani.findOne({ where: { id } });
 
     if (!petani) {
       throw new ApiError(404, 'Petani tidak ditemukan.');
     }
 
     if (peran === 'penyuluh') {
-      const penyuluh = await dataPenyuluh.findOne({
-        where: { accountID }
-      });
+      const penyuluh = await dataPenyuluh.findOne({ where: { accountID } });
 
       if (petani.fk_penyuluhId !== penyuluh.id) {
         throw new ApiError(403, 'Anda tidak memiliki akses.');
@@ -354,26 +284,23 @@ const getAllTanamanPetaniByPetani = async (req, res) => {
       offset: (pageFilter - 1) * limitFilter
     };
 
-    const data = await tanamanPetani.findAll({
-      ...query,
-      order: [['createdAt', 'DESC']]
-    });
+    const data = await tanamanPetani.findAll({ ...query, order: [['createdAt', 'DESC']] });
     const total = await tanamanPetani.count({ ...query });
 
-    res.status(200).json({
-      message: 'Data berhasil didapatkan.',
-      data,
-      total,
-      currentPages: pageFilter,
-      limit: limitFilter,
-      maxPages: Math.ceil(total / limitFilter),
-      from: pageFilter ? (pageFilter - 1) * limitFilter + 1 : 1,
-      to: pageFilter ? (pageFilter - 1) * limitFilter + data.length : data.length
-    });
+    res
+      .status(200)
+      .json({
+        message: 'Data berhasil didapatkan.',
+        data,
+        total,
+        currentPages: pageFilter,
+        limit: limitFilter,
+        maxPages: Math.ceil(total / limitFilter),
+        from: pageFilter ? (pageFilter - 1) * limitFilter + 1 : 1,
+        to: pageFilter ? (pageFilter - 1) * limitFilter + data.length : data.length
+      });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -387,50 +314,36 @@ const getTanamanbyPetani = async (req, res) => {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     }
 
-    const petani = await dataPetani.findOne({
-      where: { id }
-    });
+    const petani = await dataPetani.findOne({ where: { id } });
 
     if (!petani) {
       throw new ApiError(404, 'Petani tidak ditemukan.');
     }
 
     if (peran === 'penyuluh') {
-      const penyuluh = await dataPenyuluh.findOne({
-        where: { accountID }
-      });
+      const penyuluh = await dataPenyuluh.findOne({ where: { accountID } });
 
       if (petani.fk_penyuluhId !== penyuluh.id) {
         throw new ApiError(403, 'Anda tidak memiliki akses.');
       }
     }
 
-    const filter = {
-      fk_petaniId: id
-    };
+    const filter = { fk_petaniId: id };
 
     if (jenis) {
-      filter.jenis = {
-        [Op.like]: `%${jenis}%`
-      };
+      filter.jenis = { [Op.like]: `%${jenis}%` };
     }
 
     if (musim) {
-      filter.periodeMusimTanam = {
-        [Op.like]: `%${musim}%`
-      };
+      filter.periodeMusimTanam = { [Op.like]: `%${musim}%` };
     }
 
     if (tipe) {
-      filter.kategori = {
-        [Op.like]: `%${tipe}%`
-      };
+      filter.kategori = { [Op.like]: `%${tipe}%` };
     }
 
     if (startDate && endDate) {
-      filter.createdAt = {
-        [Op.between]: [new Date(startDate), new Date(endDate)]
-      };
+      filter.createdAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
     }
 
     const data = await tanamanPetani.findAll({
@@ -445,14 +358,9 @@ const getTanamanbyPetani = async (req, res) => {
       group: ['komoditas']
     });
 
-    res.status(200).json({
-      message: 'Data berhasil didapatkan.',
-      data
-    });
+    res.status(200).json({ message: 'Data berhasil didapatkan.', data });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -465,13 +373,9 @@ const getAllTanamanPetaniByPenyuluh = async (req, res) => {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     }
 
-    const penyuluh = await dataPenyuluh.findOne({
-      where: { accountID }
-    });
+    const penyuluh = await dataPenyuluh.findOne({ where: { accountID } });
 
-    const petanis = await dataPetani.findAll({
-      where: { fk_penyuluhId: penyuluh.id }
-    });
+    const petanis = await dataPetani.findAll({ where: { fk_penyuluhId: penyuluh.id } });
 
     const petaniIds = petanis.map((petani) => petani.id);
 
@@ -481,35 +385,28 @@ const getAllTanamanPetaniByPenyuluh = async (req, res) => {
     console.log({ petaniIds });
 
     const query = {
-      where: {
-        fk_petaniId: {
-          [Op.in]: petaniIds
-        }
-      },
+      where: { fk_petaniId: { [Op.in]: petaniIds } },
       limit: limitFilter,
       offset: (pageFilter - 1) * limitFilter
     };
 
-    const data = await tanamanPetani.findAll({
-      ...query,
-      order: [['createdAt', 'DESC']]
-    });
+    const data = await tanamanPetani.findAll({ ...query, order: [['createdAt', 'DESC']] });
     const total = await tanamanPetani.count({ ...query });
 
-    res.status(200).json({
-      message: 'Data berhasil didapatkan.',
-      data,
-      total,
-      currentPages: pageFilter,
-      limit: limitFilter,
-      maxPages: Math.ceil(total / limitFilter),
-      from: pageFilter ? (pageFilter - 1) * limitFilter + 1 : 1,
-      to: pageFilter ? (pageFilter - 1) * limitFilter + data.length : data.length
-    });
+    res
+      .status(200)
+      .json({
+        message: 'Data berhasil didapatkan.',
+        data,
+        total,
+        currentPages: pageFilter,
+        limit: limitFilter,
+        maxPages: Math.ceil(total / limitFilter),
+        from: pageFilter ? (pageFilter - 1) * limitFilter + 1 : 1,
+        to: pageFilter ? (pageFilter - 1) * limitFilter + data.length : data.length
+      });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -529,35 +426,18 @@ const getDetailedDataTanamanPetani = async (req, res) => {
           model: dataPetani,
           as: 'dataPetani',
           include: [
-            {
-              model: kelompok,
-              as: 'kelompok'
-            },
-            {
-              model: dataPenyuluh,
-              as: 'dataPenyuluh'
-            },
-            {
-              model: kecamatan,
-              as: 'kecamatanData'
-            },
-            {
-              model: desa,
-              as: 'desaData'
-            }
+            { model: kelompok, as: 'kelompok' },
+            { model: dataPenyuluh, as: 'dataPenyuluh' },
+            { model: kecamatan, as: 'kecamatanData' },
+            { model: desa, as: 'desaData' }
           ]
         }
       ]
     });
 
-    res.status(200).json({
-      message: 'Data berhasil didapatkan.',
-      data
-    });
+    res.status(200).json({ message: 'Data berhasil didapatkan.', data });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -594,9 +474,7 @@ const editDataTanamanPetani = async (req, res) => {
     if (!prakiraanBulanPanen) throw new ApiError(400, 'Prakiraan bulan panen tidak boleh kosong.');
     if (!fk_petaniId) throw new ApiError(400, 'Kelompok tidak boleh kosong.');
 
-    const Petani = await dataPetani.findOne({
-      where: { id: fk_petaniId }
-    });
+    const Petani = await dataPetani.findOne({ where: { id: fk_petaniId } });
     if (!Petani) throw new ApiError(400, 'Data Petani tidak ditemukan');
 
     const data = await tanamanPetani.update(
@@ -616,14 +494,9 @@ const editDataTanamanPetani = async (req, res) => {
       { where: { id } }
     );
 
-    res.status(200).json({
-      message: 'Data berhasil diupdate.',
-      data
-    });
+    res.status(200).json({ message: 'Data berhasil diupdate.', data });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -661,9 +534,7 @@ const uploadDataTanamanPetani = async (req, res) => {
       }
 
       const nikPetani = row.getCell(1).value.toString(); // Fix variable name
-      const petani = await dataPetani.findOne({
-        where: { nik: nikPetani }
-      });
+      const petani = await dataPetani.findOne({ where: { nik: nikPetani } });
       if (petani) {
         // Check if petani is found before creating tanamanPetani
         await tanamanPetani.create({
@@ -684,13 +555,9 @@ const uploadDataTanamanPetani = async (req, res) => {
       }
     }
 
-    res.status(201).json({
-      message: 'Data berhasil ditambahkan.'
-    });
+    res.status(201).json({ message: 'Data berhasil ditambahkan.' });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
