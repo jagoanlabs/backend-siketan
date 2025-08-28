@@ -40,7 +40,6 @@ const getMetaKelompok = async (req, res) => {
   }
 };
 
-
 const getAllKelompok = async (req, res) => {
   const { peran } = req.user || {};
   const { page, limit, search } = req.query;
@@ -307,13 +306,15 @@ const uploadDataKelompoks = async (req, res) => {
     }
 
     const { file } = req;
+    console.log(file);
     if (!file) throw new ApiError(400, 'File tidak ditemukan.');
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(file.buffer);
 
-    const worksheet = workbook.getWorksheet(1);
+    const worksheet = workbook.worksheets[0];
     const rowCount = worksheet.rowCount;
+    console.log(rowCount);
     if (rowCount < 2) throw new ApiError(400, 'Data tidak ditemukan.');
 
     for (let index = 2; index <= rowCount; index++) {

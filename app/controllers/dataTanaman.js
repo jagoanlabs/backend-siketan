@@ -47,18 +47,19 @@ const getAllDataTanaman = async (req, res) => {
       whereClause.komoditas = { [Op.like]: `%${komoditas}%` };
     }
 
-    // pencarian umum (nama kategori / komoditas / periodeTanam)
+    // pencarian umum (kategori / komoditas / periodeTanam / kelompok.namaKelompok)
     if (search && search !== 'undefined') {
       whereClause[Op.or] = [
         { kategori: { [Op.like]: `%${search}%` } },
         { komoditas: { [Op.like]: `%${search}%` } },
-        { periodeTanam: { [Op.like]: `%${search}%` } }
+        { periodeTanam: { [Op.like]: `%${search}%` } },
+        { '$kelompok.namaKelompok$': { [Op.like]: `%${search}%` } }
       ];
     }
 
     const filter = {
       where: whereClause,
-      include: [{ model: kelompok, as: 'kelompok' }],
+      include: [{ model: kelompok, as: 'kelompok', required: true }],
       limit: limitFilter,
       offset: (pageFilter - 1) * limitFilter,
       order: [[sortBy || 'id', sortType || 'DESC']]
@@ -66,10 +67,15 @@ const getAllDataTanaman = async (req, res) => {
 
     const data = await dataTanaman.findAll(
       isExportFilter
-        ? { where: whereClause, include: [{ model: kelompok, as: 'kelompok' }] }
+        ? { where: whereClause, include: [{ model: kelompok, as: 'kelompok', required: true }] }
         : filter
     );
-    const total = await dataTanaman.count({ where: whereClause });
+
+    const total = await dataTanaman.count({
+      where: whereClause,
+      include: [{ model: kelompok, as: 'kelompok', required: true }],
+      distinct: true
+    });
 
     res.status(200).json({
       message: 'Data berhasil didapatkan.',
@@ -350,7 +356,7 @@ const editDataTanaman = async (req, res) => {
     });
 
     res.status(201).json({
-      message: 'Data berhasil diupdate.',
+      message: 'Data berhasil diupdate. awdadwdadwa',
       data: req.body
     });
   } catch (error) {

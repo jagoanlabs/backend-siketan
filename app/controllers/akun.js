@@ -28,9 +28,9 @@ const login = async (req, res) => {
     const { email = '', password = '' } = req.body;
     const user = await tblAkun.findOne({ where: { email } });
     if (!user) throw new ApiError(400, 'Email tidak terdaftar.');
-    if (user.peran === 'petani') {
-      throw new ApiError(403, 'Anda tidak memiliki akses');
-    }
+    // if (user.peran === 'petani') {
+    //   throw new ApiError(403, 'Anda tidak memiliki akses');
+    // }
     if (!bcrypt.compareSync(password, user.password)) {
       throw new ApiError(400, 'Password salah.');
     }
