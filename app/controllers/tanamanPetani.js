@@ -33,7 +33,8 @@ const getAllTanamanPetani = async (req, res) => {
     const query = {
       include: [{ model: dataPetani, as: 'dataPetani' }],
       limit: limitFilter,
-      offset: (pageFilter - 1) * limitFilter
+      offset: (pageFilter - 1) * limitFilter,
+      order: [['createdAt', 'DESC']]
       // limit: parseInt(limit),
     };
 
@@ -54,7 +55,8 @@ const getAllTanamanPetani = async (req, res) => {
                   { model: desa, as: 'desaData' }
                 ]
               }
-            ]
+            ],
+            order: [['createdAt', 'DESC']]
           }
         : { ...query }
     );
@@ -425,8 +427,13 @@ const getDetailedDataTanamanPetani = async (req, res) => {
       ]
     });
 
+    if (!data) {
+      throw new ApiError(404, 'Data tanaman petani tidak ditemukan.');
+    }
+
     res.status(200).json({ message: 'Data berhasil didapatkan.', data });
   } catch (error) {
+    console.error('Error in getDetailedDataTanamanPetani:', error);
     res.status(error.statusCode || 500).json({ message: error.message });
   }
 };

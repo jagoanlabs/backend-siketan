@@ -92,9 +92,7 @@ const getAllDataTanaman = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -106,20 +104,11 @@ const fixKategori = async (req, res) => {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     }
 
-    const whereFilter = category
-      ? {
-          where: {
-            kategori: category
-          }
-        }
-      : {};
+    const whereFilter = category ? { where: { kategori: category } } : {};
     const data = await dataTanaman.findAll(whereFilter);
 
     if (whereFilter.where) {
-      return res.status(200).json({
-        message: 'Data berhasil didapatkan.',
-        data
-      });
+      return res.status(200).json({ message: 'Data berhasil didapatkan.', data });
     }
 
     data.forEach(async (item) => {
@@ -136,18 +125,12 @@ const fixKategori = async (req, res) => {
       } else if (komoditasTahunan.includes(item.komoditas)) {
         correctCategory = 'sayur';
       }
-      await item.update({
-        kategori: correctCategory
-      });
+      await item.update({ kategori: correctCategory });
     });
 
-    res.status(200).json({
-      message: 'Data berhasil diupdate.'
-    });
+    res.status(200).json({ message: 'Data berhasil diupdate.' });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -168,39 +151,22 @@ const fixKomoditas = async (req, res) => {
       return res.status(200).json({
         message: 'Data berhasil didapatkan.',
         data: await dataTanaman.findAll({
-          where: {
-            komoditas: {
-              [Op.notIn]: correctKomoditas
-            }
-          }
+          where: { komoditas: { [Op.notIn]: correctKomoditas } }
         })
       });
     }
 
-    const data = await dataTanaman.findAll({
-      where: {
-        komoditas: wrongKomoditas
-      }
-    });
+    const data = await dataTanaman.findAll({ where: { komoditas: wrongKomoditas } });
     if (debug) {
-      return res.status(200).json({
-        message: 'Data berhasil didapatkan.',
-        data
-      });
+      return res.status(200).json({ message: 'Data berhasil didapatkan.', data });
     }
     data.forEach(async (item) => {
-      await item.update({
-        komoditas: correctKomoditas
-      });
+      await item.update({ komoditas: correctKomoditas });
     });
 
-    res.status(200).json({
-      message: 'Data berhasil diupdate.'
-    });
+    res.status(200).json({ message: 'Data berhasil diupdate.' });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -215,22 +181,12 @@ const getDetailedDataTanaman = async (req, res) => {
 
     const data = await dataTanaman.findOne({
       where: { id },
-      include: [
-        {
-          model: kelompok,
-          as: 'kelompok'
-        }
-      ]
+      include: [{ model: kelompok, as: 'kelompok' }]
     });
 
-    res.status(200).json({
-      message: 'Data berhasil didapatkan.',
-      data
-    });
+    res.status(200).json({ message: 'Data berhasil didapatkan.', data });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -261,9 +217,7 @@ const tambahDataTanaman = async (req, res) => {
     if (!prakiraanBulanPanen) throw new ApiError(400, 'Prakiraan bulan panen tidak boleh kosong.');
     if (!fk_kelompokId) throw new ApiError(400, 'Kelompok tidak boleh kosong.');
 
-    const kelompokTani = await kelompok.findOne({
-      where: { id: fk_kelompokId }
-    });
+    const kelompokTani = await kelompok.findOne({ where: { id: fk_kelompokId } });
     if (!kelompokTani) throw new ApiError(400, 'Kelompok tidak ditemukan.');
 
     const data = await dataTanaman.create({
@@ -277,21 +231,11 @@ const tambahDataTanaman = async (req, res) => {
       fk_kelompokId
     });
 
-    postActivity({
-      user_id: id,
-      activity: 'CREATE',
-      type: 'DATA TANAMAN',
-      detail_id: data.id
-    });
+    postActivity({ user_id: id, activity: 'CREATE', type: 'DATA TANAMAN', detail_id: data.id });
 
-    res.status(201).json({
-      message: 'Data berhasil ditambahkan.',
-      data
-    });
+    res.status(201).json({ message: 'Data berhasil ditambahkan.', data });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -326,9 +270,7 @@ const editDataTanaman = async (req, res) => {
     if (!prakiraanBulanPanen) throw new ApiError(400, 'Prakiraan bulan panen tidak boleh kosong.');
     if (!fk_kelompokId) throw new ApiError(400, 'Kelompok tidak boleh kosong.');
 
-    const kelompokTani = await kelompok.findOne({
-      where: { id: fk_kelompokId }
-    });
+    const kelompokTani = await kelompok.findOne({ where: { id: fk_kelompokId } });
     if (!kelompokTani) throw new ApiError(400, 'Kelompok tidak ditemukan.');
 
     await dataTanaman.update(
@@ -348,21 +290,11 @@ const editDataTanaman = async (req, res) => {
       { where: { id } }
     );
 
-    postActivity({
-      user_id: UserId,
-      activity: 'EDIT',
-      type: 'DATA TANAMAN',
-      detail_id: id
-    });
+    postActivity({ user_id: UserId, activity: 'EDIT', type: 'DATA TANAMAN', detail_id: id });
 
-    res.status(201).json({
-      message: 'Data berhasil diupdate. awdadwdadwa',
-      data: req.body
-    });
+    res.status(201).json({ message: 'Data berhasil diupdate.', data: req.body });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -375,24 +307,13 @@ const hapusDataTanaman = async (req, res) => {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     }
 
-    await dataTanaman.destroy({
-      where: { id }
-    });
+    await dataTanaman.destroy({ where: { id } });
 
-    postActivity({
-      user_id: UserId,
-      activity: 'DELETE',
-      type: 'DATA TANAMAN',
-      detail_id: id
-    });
+    postActivity({ user_id: UserId, activity: 'DELETE', type: 'DATA TANAMAN', detail_id: id });
 
-    res.status(200).json({
-      message: 'Data berhasil dihapus.'
-    });
+    res.status(200).json({ message: 'Data berhasil dihapus.' });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 
@@ -471,9 +392,7 @@ const uploadDataTanaman = async (req, res) => {
       if (realisasiBulanPanen && !monthOrder.includes(realisasiBulanPanen))
         throw new ApiError(400, `Realisasi bulan panen tidak valid. Data ke-${i - 1} (baris ${i})`);
 
-      const kelompokTani = await kelompok.findOne({
-        where: { id: fk_kelompokId }
-      });
+      const kelompokTani = await kelompok.findOne({ where: { id: fk_kelompokId } });
 
       if (!kelompokTani)
         throw new ApiError(
@@ -495,13 +414,9 @@ const uploadDataTanaman = async (req, res) => {
       });
     }
 
-    res.status(201).json({
-      message: 'Data berhasil ditambahkan.'
-    });
+    res.status(201).json({ message: 'Data berhasil ditambahkan.' });
   } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
+    res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
 

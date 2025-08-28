@@ -630,21 +630,26 @@ const updateTaniDetail = async (req, res) => {
         img.url;
         urlImg = img.url;
       }
-      const hashedPassword = bcrypt.hashSync(password, 10);
-      const accountUpdate = await tbl_akun.update(
-        {
-          email,
-          password: hashedPassword,
-          no_wa: NoWa,
-          nama,
-          pekerjaan: '',
-          peran: 'petani',
-          foto: urlImg
-        },
-        {
-          where: { accountID: data.accountID }
-        }
-      );
+      // Prepare update data
+      const updateData = {
+        email,
+        no_wa: NoWa,
+        nama,
+        pekerjaan: '',
+        peran: 'petani',
+        foto: urlImg
+      };
+
+      // Hash password if provided
+      let hashedPassword = null;
+      if (password && password.trim()) {
+        hashedPassword = bcrypt.hashSync(password, 10);
+        updateData.password = hashedPassword;
+      }
+
+      const accountUpdate = await tbl_akun.update(updateData, {
+        where: { accountID: data.accountID }
+      });
       let kecamatanData;
       if (inputKecamatan && !kecamatanId) {
         console.debug('Get data kecamatan by nama');
@@ -681,27 +686,30 @@ const updateTaniDetail = async (req, res) => {
       console.debug('Update data petani');
       console.log({ penyuluhData, kelompokData, kecamatanData, desaData });
 
-      const petaniUpdate = await dataPetani.update(
-        {
-          nik: NIK,
-          nkk: nokk,
-          foto: urlImg,
-          nama,
-          alamat,
-          desa: inputDesa,
-          kecamatan: inputKecamatan,
-          password: hashedPassword,
-          email,
-          noTelp: NoWa,
-          fk_penyuluhId: penyuluhData.id,
-          fk_kelompokId: kelompokData.id,
-          kecamatanId: kecamatanData ? kecamatanData.id : kecamatanId,
-          desaId: desaData ? desaData.id : desaId
-        },
-        {
-          where: { id }
-        }
-      );
+      // Prepare petani update data
+      const petaniUpdateData = {
+        nik: NIK,
+        nkk: nokk,
+        foto: urlImg,
+        nama,
+        alamat,
+        desa: inputDesa,
+        kecamatan: inputKecamatan,
+        email,
+        noTelp: NoWa,
+        fk_penyuluhId: penyuluhData.id,
+        fk_kelompokId: kelompokData.id,
+        kecamatanId: kecamatanData ? kecamatanData.id : kecamatanId,
+        desaId: desaData ? desaData.id : desaId
+      };
+
+      if (hashedPassword) {
+        petaniUpdateData.password = hashedPassword;
+      }
+
+      const petaniUpdate = await dataPetani.update(petaniUpdateData, {
+        where: { id }
+      });
       console.debug('Post activity');
       postActivity({
         user_id: UserId,
