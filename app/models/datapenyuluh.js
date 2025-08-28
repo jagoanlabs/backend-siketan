@@ -43,7 +43,24 @@ module.exports = (sequelize, DataTypes) => {
       desa: DataTypes.STRING,
       desaBinaan: DataTypes.STRING,
       kecamatanBinaan: DataTypes.STRING,
-      accountID: DataTypes.UUID // connect with tbl_akun
+      accountID: DataTypes.UUID, // connect with tbl_akun
+      // TAMBAHKAN FIELD INI:
+      kecamatanId: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // karena data lama ada yang null
+        references: {
+          model: 'kecamatans',
+          key: 'id'
+        }
+      },
+      desaId: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // karena data lama ada yang null
+        references: {
+          model: 'desas',
+          key: 'id'
+        }
+      }
     },
     {
       sequelize,

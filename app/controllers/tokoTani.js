@@ -341,7 +341,56 @@ const listToko = async (req, res) => {
   }
 };
 
+const metaProductPetani = async (req, res) => {
+  try {
+    // total semua produk
+    const totalProduct = await penjual.count({
+      distinct: true
+    });
+
+    // total product dari petani
+    const totalProductPetani = await penjual.count({
+      include: [
+        {
+          model: tblAkun,
+          required: true,
+          attributes: [],
+          where: { peran: 'petani' } // filter langsung ke role
+        }
+      ],
+      distinct: true
+    });
+
+    // total product dari penyuluh
+    const totalProductPenyuluh = await penjual.count({
+      include: [
+        {
+          model: tblAkun,
+          required: true,
+          attributes: [],
+          where: { peran: 'penyuluh' } // filter langsung ke role
+        }
+      ],
+      distinct: true
+    });
+
+    res.status(200).json({
+      message: 'Berhasil Mendapatkan Meta Product',
+      data: {
+        totalProduct,
+        totalProductPetani,
+        totalProductPenyuluh
+      }
+    });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
+  metaProductPetani,
   tambahDaftarPenjual,
   productPetani,
   productPenyuluh,
