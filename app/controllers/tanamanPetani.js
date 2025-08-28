@@ -33,7 +33,8 @@ const getAllTanamanPetani = async (req, res) => {
     const query = {
       include: [{ model: dataPetani, as: 'dataPetani' }],
       limit: limitFilter,
-      offset: (pageFilter - 1) * limitFilter
+      offset: (pageFilter - 1) * limitFilter,
+      order: [['createdAt', 'DESC']]
       // limit: parseInt(limit),
     };
 
@@ -54,25 +55,24 @@ const getAllTanamanPetani = async (req, res) => {
                   { model: desa, as: 'desaData' }
                 ]
               }
-            ]
+            ],
+            order: [['createdAt', 'DESC']]
           }
         : { ...query }
     );
     const total = await tanamanPetani.count({ ...query });
     // { ...query } can be replaced with 'query' since it's the same object and don't need to be spread using '...'
 
-    res
-      .status(200)
-      .json({
-        message: 'Data berhasil didapatkan.',
-        data,
-        total,
-        currentPages: Number(page),
-        limit: Number(limit),
-        maxPages: Math.ceil(total / Number(limit)),
-        from: Number(page) ? (Number(page) - 1) * Number(limit) + 1 : 1,
-        to: Number(page) ? (Number(page) - 1) * Number(limit) + data.length : data.length
-      });
+    res.status(200).json({
+      message: 'Data berhasil didapatkan.',
+      data,
+      total,
+      currentPages: Number(page),
+      limit: Number(limit),
+      maxPages: Math.ceil(total / Number(limit)),
+      from: Number(page) ? (Number(page) - 1) * Number(limit) + 1 : 1,
+      to: Number(page) ? (Number(page) - 1) * Number(limit) + data.length : data.length
+    });
   } catch (error) {
     res.status(error.statusCode || 500).json({ message: error.message });
   }
@@ -118,18 +118,16 @@ const getTopTanamanPetani = async (req, res) => {
     const limitedTotal = total > 30 ? 30 : total;
     const slicedData = data.slice((pageFilter - 1) * limitFilter, pageFilter * limitFilter);
 
-    res
-      .status(200)
-      .json({
-        message: 'Berhasil mendapatkan data tanaman petani',
-        data: slicedData,
-        total: limitedTotal,
-        currentPages: pageFilter,
-        limit: limitFilter,
-        maxPages: Math.ceil(limitedTotal / limitFilter),
-        from: (pageFilter - 1) * limitFilter + 1,
-        to: (pageFilter - 1) * limitFilter + data.length
-      });
+    res.status(200).json({
+      message: 'Berhasil mendapatkan data tanaman petani',
+      data: slicedData,
+      total: limitedTotal,
+      currentPages: pageFilter,
+      limit: limitFilter,
+      maxPages: Math.ceil(limitedTotal / limitFilter),
+      from: (pageFilter - 1) * limitFilter + 1,
+      to: (pageFilter - 1) * limitFilter + data.length
+    });
   } catch (error) {
     res.status(error.statusCode || 500).json({ message: error.message });
   }
@@ -240,12 +238,10 @@ const getTanamanPetaniStatistically = async (req, res) => {
       order: [[Sequelize.col('createdAt'), 'DESC']],
       limit: 5
     });
-    res
-      .status(200)
-      .json({
-        message: 'Data berhasil didapatkan.',
-        data: { statistik: lineChart, summary: pieChart, latest }
-      });
+    res.status(200).json({
+      message: 'Data berhasil didapatkan.',
+      data: { statistik: lineChart, summary: pieChart, latest }
+    });
   } catch (error) {
     res.status(error.statusCode || 500).json({ message: error.message });
   }
@@ -287,18 +283,16 @@ const getAllTanamanPetaniByPetani = async (req, res) => {
     const data = await tanamanPetani.findAll({ ...query, order: [['createdAt', 'DESC']] });
     const total = await tanamanPetani.count({ ...query });
 
-    res
-      .status(200)
-      .json({
-        message: 'Data berhasil didapatkan.',
-        data,
-        total,
-        currentPages: pageFilter,
-        limit: limitFilter,
-        maxPages: Math.ceil(total / limitFilter),
-        from: pageFilter ? (pageFilter - 1) * limitFilter + 1 : 1,
-        to: pageFilter ? (pageFilter - 1) * limitFilter + data.length : data.length
-      });
+    res.status(200).json({
+      message: 'Data berhasil didapatkan.',
+      data,
+      total,
+      currentPages: pageFilter,
+      limit: limitFilter,
+      maxPages: Math.ceil(total / limitFilter),
+      from: pageFilter ? (pageFilter - 1) * limitFilter + 1 : 1,
+      to: pageFilter ? (pageFilter - 1) * limitFilter + data.length : data.length
+    });
   } catch (error) {
     res.status(error.statusCode || 500).json({ message: error.message });
   }
@@ -393,18 +387,16 @@ const getAllTanamanPetaniByPenyuluh = async (req, res) => {
     const data = await tanamanPetani.findAll({ ...query, order: [['createdAt', 'DESC']] });
     const total = await tanamanPetani.count({ ...query });
 
-    res
-      .status(200)
-      .json({
-        message: 'Data berhasil didapatkan.',
-        data,
-        total,
-        currentPages: pageFilter,
-        limit: limitFilter,
-        maxPages: Math.ceil(total / limitFilter),
-        from: pageFilter ? (pageFilter - 1) * limitFilter + 1 : 1,
-        to: pageFilter ? (pageFilter - 1) * limitFilter + data.length : data.length
-      });
+    res.status(200).json({
+      message: 'Data berhasil didapatkan.',
+      data,
+      total,
+      currentPages: pageFilter,
+      limit: limitFilter,
+      maxPages: Math.ceil(total / limitFilter),
+      from: pageFilter ? (pageFilter - 1) * limitFilter + 1 : 1,
+      to: pageFilter ? (pageFilter - 1) * limitFilter + data.length : data.length
+    });
   } catch (error) {
     res.status(error.statusCode || 500).json({ message: error.message });
   }
@@ -435,8 +427,13 @@ const getDetailedDataTanamanPetani = async (req, res) => {
       ]
     });
 
+    if (!data) {
+      throw new ApiError(404, 'Data tanaman petani tidak ditemukan.');
+    }
+
     res.status(200).json({ message: 'Data berhasil didapatkan.', data });
   } catch (error) {
+    console.error('Error in getDetailedDataTanamanPetani:', error);
     res.status(error.statusCode || 500).json({ message: error.message });
   }
 };
