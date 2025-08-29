@@ -5,6 +5,7 @@ const {
   login,
   register,
   loginPetani,
+  setPetaniPassword,
   registerPetani,
   getUserNotVerify,
   // verifikasi,
@@ -23,8 +24,9 @@ const {
 
 router.post('/login', login);
 router.post('/register', upload.single('foto'), register);
-router.post('/petani-login', loginPetani);
-router.post('/petani-register', upload.single('foto'), registerPetani);
+router.post('/petani-login', loginPetani); //login tani
+router.post('/set-petani-password', setPetaniPassword);
+router.post('/petani-register', upload.single('foto'), registerPetani); //register tani
 router.get('/populate-penyuluh', opsiPenyuluh);
 router.get('/populate-poktan', opsiPoktan);
 router.get('/profile', getProfile);

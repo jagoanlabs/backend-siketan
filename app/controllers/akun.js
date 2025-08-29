@@ -28,9 +28,9 @@ const login = async (req, res) => {
     const { email = '', password = '' } = req.body;
     const user = await tblAkun.findOne({ where: { email } });
     if (!user) throw new ApiError(400, 'Email tidak terdaftar.');
-    // if (user.peran === 'petani') {
-    //   throw new ApiError(403, 'Anda tidak memiliki akses');
-    // }
+    if (user.peran === 'petani') {
+      throw new ApiError(403, 'Anda tidak memiliki akses');
+    }
     if (!bcrypt.compareSync(password, user.password)) {
       throw new ApiError(400, 'Password salah.');
     }
@@ -139,16 +139,19 @@ const register = async (req, res) => {
 };
 const loginPetani = async (req, res) => {
   try {
-    const { NIK = '', password = '', NIP = '' } = req.body;
-    if (NIK && NIP) {
+    const { NIK = '', password = '' } = req.body;
+
+    if (!NIK) {
       throw new ApiError(
         400,
         'Masukkan NIK untuk Petani atau NIP untuk Penyuluh, tidak bisa keduanya.'
       );
     }
+
     if (NIK) {
       const userPetani = await dataPetani.findOne({ where: { NIK } });
       if (!userPetani) throw new ApiError(400, 'NIK tidak terdaftar.');
+
       const user = await tblAkun.findOne({
         where: { accountID: userPetani.accountID }
       });
@@ -156,48 +159,98 @@ const loginPetani = async (req, res) => {
       if (!user.isVerified) {
         throw new ApiError(400, 'Akun belum diverifikasi oleh admin, mohon menunggu');
       }
-      if (!bcrypt.compareSync(password, userPetani.password)) {
-        throw new ApiError(400, 'Password salah.');
-      }
-      if (bcrypt.compareSync(password, userPetani.password)) {
-        const token = jwt.sign(
-          {
-            id: user.id
-          },
-          process.env.SECRET_KEY
-        );
+
+      // Cek jika password masih null/kosong - arahkan ke set password
+      if (!userPetani.password || userPetani.password === null) {
         return res.status(200).json({
-          message: 'Login berhasil.',
-          token,
+          message: 'Password belum diatur. Silakan atur password terlebih dahulu.',
+          needSetPassword: true,
           user: userPetani
         });
       }
-    } else if (NIP) {
-      const userPenyuluh = await dataPenyuluh.findOne({ where: { nik: NIP } });
-      if (!userPenyuluh) throw new ApiError(400, 'NIP tidak terdaftar.');
-      if (!bcrypt.compareSync(password, userPenyuluh.password)) {
+
+      // Validasi password jika sudah diset
+      if (!password) {
+        throw new ApiError(400, 'Password tidak boleh kosong.');
+      }
+
+      if (!bcrypt.compareSync(password, userPetani.password)) {
         throw new ApiError(400, 'Password salah.');
       }
 
-      const user = await tblAkun.findOne({
-        where: { accountID: userPenyuluh.accountID }
+      // Login berhasil
+      const token = jwt.sign(
+        {
+          id: user.id,
+          NIK: userPetani.NIK,
+          accountID: userPetani.accountID
+        },
+        process.env.SECRET_KEY
+      );
+
+      return res.status(200).json({
+        message: 'Login berhasil.',
+        token,
+        user: userPetani
       });
-      if (bcrypt.compareSync(password, userPenyuluh.password)) {
-        const token = jwt.sign(
-          {
-            id: user.id
-          },
-          process.env.SECRET_KEY
-        );
-        return res.status(200).json({
-          message: 'Login berhasil.',
-          token,
-          user: userPenyuluh
-        });
-      }
     } else {
-      throw new ApiError(400, 'NIK atau NIP tidak boleh kosong.');
+      throw new ApiError(400, 'NIK tidak boleh kosong.');
     }
+  } catch (error) {
+    res.status(error.statusCode || 500).json({
+      message: error.message
+    });
+  }
+};
+
+// Controller untuk set password pertama kali
+const setPetaniPassword = async (req, res) => {
+  try {
+    const { NIK, password, confirmPassword } = req.body;
+
+    // Validasi input
+    if (!NIK || !password || !confirmPassword) {
+      throw new ApiError(400, 'NIK, password, dan konfirmasi password wajib diisi.');
+    }
+
+    if (password !== confirmPassword) {
+      throw new ApiError(400, 'Password dan konfirmasi password tidak cocok.');
+    }
+
+    if (password.length < 6) {
+      throw new ApiError(400, 'Password minimal 6 karakter.');
+    }
+
+    // Cari petani berdasarkan NIK
+    const userPetani = await dataPetani.findOne({ where: { NIK } });
+    if (!userPetani) {
+      throw new ApiError(400, 'NIK tidak terdaftar.');
+    }
+
+    // Cek apakah akun sudah diverifikasi
+    const user = await tblAkun.findOne({
+      where: { accountID: userPetani.accountID }
+    });
+
+    if (!user.isVerified) {
+      throw new ApiError(400, 'Akun belum diverifikasi oleh admin.');
+    }
+
+    // Cek apakah password sudah pernah diset
+    if (userPetani.password && userPetani.password !== null) {
+      throw new ApiError(
+        400,
+        'Password sudah pernah diatur. Silakan login dengan password yang ada.'
+      );
+    }
+
+    // Hash password dan update
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    await dataPetani.update({ password: hashedPassword }, { where: { NIK } });
+
+    res.status(200).json({
+      message: 'Password berhasil diatur. Silakan login kembali.'
+    });
   } catch (error) {
     res.status(error.statusCode || 500).json({
       message: error.message
@@ -367,16 +420,22 @@ const opsiPenyuluh = async (req, res) => {
   try {
     const dataDaftarPenyuluh = await dataPenyuluh.findAll({
       include: [
+        { model: kecamatan, as: 'kecamatanData' },
+        { model: desa, as: 'desaData' },
         {
-          model: kecamatan,
-          as: 'kecamatanData'
+          model: kecamatanBinaan,
+          as: 'kecamatanBinaanData',
+          include: [{ model: kecamatan }]
         },
         {
-          model: desa,
-          as: 'desaData'
+          model: desaBinaan,
+          as: 'desaBinaanData',
+          include: [{ model: desa }]
         }
-      ]
+      ],
+      order: [['nama', 'ASC']]
     });
+
     res.status(200).json({
       message: 'Semua Data Penyuluh',
       dataDaftarPenyuluh
@@ -1299,6 +1358,7 @@ module.exports = {
   login,
   register,
   loginPetani,
+  setPetaniPassword,
   registerPetani,
   getUserNotVerify,
   verifikasi,
