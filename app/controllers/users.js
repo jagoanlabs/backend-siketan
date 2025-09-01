@@ -8,7 +8,7 @@ const {
   kecamatan,
   desa
 } = require('../models');
-const { Op, fn, col } = require('sequelize');
+const { Op } = require('sequelize');
 
 const usersAll = async (req, res) => {
   const { peran } = req.user || {};
@@ -220,6 +220,10 @@ const searchPetani = async (req, res) => {
         ]
       },
       include: [
+        {
+          model: tbl_akun,
+          as: 'tbl_akun'
+        },
         {
           model: kelompok,
           as: 'kelompok'
