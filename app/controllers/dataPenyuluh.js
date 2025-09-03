@@ -10,7 +10,8 @@ const {
   kecamatan,
   desa,
   kecamatanBinaan: KecamatanBinaanModel,
-  desaBinaan: DesaBinaanModel
+  desaBinaan: DesaBinaanModel,
+  role: roleModel
 } = require('../models');
 const ApiError = require('../../utils/ApiError');
 const imageKit = require('../../midleware/imageKit');
@@ -45,7 +46,8 @@ const tambahDataPenyuluh = async (req, res) => {
         kecamatanBinaan,
         desaBinaan,
         selectedKelompokIds,
-        pekerjaan = ''
+        pekerjaan = '',
+        tipe
       } = req.body;
       console.log(req.body);
       // const kelompokArray = selectedKelompokIds.split(',');
@@ -100,16 +102,40 @@ const tambahDataPenyuluh = async (req, res) => {
       {
         /* Membuat akun untuk penyuluh yang didaftarkan */
       }
-      const newAccount = await tbl_akun.create({
-        email,
-        password: hashedPassword,
-        no_wa: NoWa,
-        nama,
-        pekerjaan,
-        peran: 'penyuluh',
-        foto: urlImg,
-        accountID: accountID
-      });
+      let newAccount;
+      if (tipe === 'reguler') {
+        const role = await roleModel.findOne({
+          where: { name: 'penyuluh' }
+        });
+        newAccount = await tbl_akun.create({
+          email,
+          password: hashedPassword,
+          no_wa: NoWa,
+          nama,
+          pekerjaan,
+          peran: 'penyuluh',
+          foto: urlImg,
+          accountID: accountID,
+          isVerified: false,
+          role_id: role.id
+        });
+      } else if (tipe === 'swadaya') {
+        const role = await roleModel.findOne({
+          where: { name: 'penyuluh_swadaya' }
+        });
+        newAccount = await tbl_akun.create({
+          email,
+          password: hashedPassword,
+          no_wa: NoWa,
+          nama,
+          pekerjaan,
+          peran: 'penyuluh_swadaya',
+          foto: urlImg,
+          accountID: accountID,
+          isVerified: false,
+          role_id: role.id
+        });
+      }
 
       {
         /* Menambahkan penyuluh yang didaftarkan */
@@ -162,7 +188,8 @@ const tambahDataPenyuluh = async (req, res) => {
         kecamatanBinaan,
         accountID: accountID,
         kecamatanId: kecamatanData ? kecamatanData.id : null,
-        desaId: desaData ? desaData.id : null
+        desaId: desaData ? desaData.id : null,
+        tipe: tipe
       });
       // // Convert each element of kelompokArray to an integer
       // const integerKelompokArray = kelompokArray.map((kelompokId) => parseInt(kelompokId, 10))
@@ -268,7 +295,7 @@ const tambahDataPenyuluh = async (req, res) => {
     });
   }
 };
-
+// terdapat masalah di sini problem di tipe reguler / swadaya
 const uploadDataPenyuluh = async (req, res) => {
   const { peran, id } = req.user || {};
   try {
@@ -333,10 +360,43 @@ const uploadDataPenyuluh = async (req, res) => {
         namaProduct: row.getCell(7).value.toString(),
         desaBinaan: row.getCell(10).value.toString(),
         kecamatanBinaan: row.getCell(11).value.toString(),
+        tipe: row.getCell(12).value.toString(),
         accountID: accountID,
         kecamatanId: kecamatanData.id,
         desaId: desaData.id
       });
+
+      if (row.getCell(12).value.toString() === 'reguler') {
+        const role = await roleModel.findOne({
+          where: { name: 'penyuluh' }
+        });
+        await tbl_akun.create({
+          email: row.getCell(4).value.toString(),
+          password: hashedPassword,
+          no_wa: row.getCell(5).value.toString(),
+          nama: row.getCell(2).value.toString(),
+          pekerjaan: '',
+          peran: 'penyuluh',
+          foto: urlImg,
+          accountID: accountID,
+          role_id: role.id
+        });
+      } else if (row.getCell(12).value.toString() === 'swadaya') {
+        const role = await roleModel.findOne({
+          where: { name: 'penyuluh_swadaya' }
+        });
+        await tbl_akun.create({
+          email: row.getCell(4).value.toString(),
+          password: hashedPassword,
+          no_wa: row.getCell(5).value.toString(),
+          nama: row.getCell(2).value.toString(),
+          pekerjaan: '',
+          peran: 'penyuluh',
+          foto: urlImg,
+          accountID: accountID,
+          role_id: role.id
+        });
+      }
 
       await tbl_akun.create({
         email: row.getCell(4).value.toString(),
@@ -943,7 +1003,8 @@ const updatePenyuluh = async (req, res) => {
         kecamatanBinaan,
         desaBinaan,
         selectedKelompokIds, // ✅ Added missing field
-        pekerjaan = 'Penyuluh Pertanian' // ✅ Added missing field with default
+        pekerjaan = 'Penyuluh Pertanian',
+        tipe // ✅ Added missing field with default
       } = req.body;
 
       console.log('=== UPDATE PENYULUH DEBUG ===');
@@ -1004,21 +1065,48 @@ const updatePenyuluh = async (req, res) => {
       }
 
       // ✅ Update account data
-      const accountUpdate = await tbl_akun.update(
-        {
-          email,
-          password: hashedPassword,
-          no_wa: NoWa,
-          nama,
-          pekerjaan,
-          peran: 'penyuluh',
-          foto: urlImg
-        },
-        {
-          where: { accountID: data.accountID }
-        }
-      );
-
+      let accountUpdate;
+      if (tipe === 'reguler') {
+        const roleData = await roleModel.findOne({
+          // ✅ Changed from 'role' to 'roleData'
+          where: { name: 'penyuluh' }
+        });
+        accountUpdate = await tbl_akun.update(
+          {
+            email,
+            password: hashedPassword,
+            no_wa: NoWa,
+            nama,
+            pekerjaan,
+            peran: 'penyuluh',
+            foto: urlImg,
+            role_id: roleData.id // ✅ Use 'roleData' instead of 'role'
+          },
+          {
+            where: { accountID: data.accountID }
+          }
+        );
+      } else if (tipe === 'swadaya') {
+        const roleData = await roleModel.findOne({
+          // ✅ Changed from 'role' to 'roleData'
+          where: { name: 'penyuluh_swadaya' }
+        });
+        accountUpdate = await tbl_akun.update(
+          {
+            email,
+            password: hashedPassword,
+            no_wa: NoWa,
+            nama,
+            pekerjaan,
+            peran: 'penyuluh',
+            foto: urlImg,
+            role_id: roleData.id // ✅ Use 'roleData' instead of 'role'
+          },
+          {
+            where: { accountID: data.accountID }
+          }
+        );
+      }
       // ✅ Handle kecamatan data (same logic as create)
       let kecamatanData = null;
       if (kecamatanId) {
@@ -1052,6 +1140,7 @@ const updatePenyuluh = async (req, res) => {
       }
 
       // ✅ Update penyuluh data
+      console.log('tipe', tipe);
       const newDataPenyuluh = await dataPenyuluh.update(
         {
           nik,
@@ -1067,13 +1156,13 @@ const updatePenyuluh = async (req, res) => {
           kecamatanBinaan,
           desaBinaan,
           kecamatanId: kecamatanData ? kecamatanData.id : null,
-          desaId: desaData ? desaData.id : null
+          desaId: desaData ? desaData.id : null,
+          tipe: tipe
         },
         {
           where: { id: id }
         }
       );
-
       // ============ UPDATE RELATIONAL DATA ============
 
       // ✅ 1. DELETE EXISTING KECAMATAN BINAAN

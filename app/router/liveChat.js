@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const auth = require('../../midleware/auth');
+const { auth } = require('../../midleware/auth');
 const { chat, tambahChat, rating, tambahRating } = require('../controllers/liveChat');
 
 router.post('/chat/add', auth, tambahChat);

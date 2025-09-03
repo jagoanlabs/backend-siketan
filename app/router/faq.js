@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const auth = require('../../midleware/auth');
+const { auth } = require('../../midleware/auth');
 const { getFaqs, getDetailFaq, createFaq, updateFaq, deleteFaq } = require('../controllers/faq');
 
 router.get('/', auth, getFaqs);
