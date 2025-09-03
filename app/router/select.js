@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const auth = require('../../midleware/auth');
+const { auth } = require('../../midleware/auth');
 const { selectTani, selectKelompok, selectKelompokById } = require('../controllers/select');
 
 router.get('/kelompok-tani/desa/:desa', selectKelompok);

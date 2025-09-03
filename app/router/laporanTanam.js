@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const auth = require('../../midleware/auth');
+const { auth } = require('../../midleware/auth');
 const upload = require('../../midleware/uploader');
 const {
   tambahLaporanTanam,

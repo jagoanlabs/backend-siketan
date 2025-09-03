@@ -1,6 +1,12 @@
 const jwt = require('jsonwebtoken');
-const { tbl_akun: tblAkun, dataPerson } = require('../app/models');
+const {
+  tbl_akun: tblAkun,
+  dataPerson,
+  role: roleModel,
+  permission: permissionModel
+} = require('../app/models');
 const dotenv = require('dotenv');
+const { ROLES } = require('../helpers/roleHelpers');
 dotenv.config();
 
 const auth = async (req, res, next) => {
@@ -53,7 +59,23 @@ const auth = async (req, res, next) => {
       }
     } else {
       // Find in tbl_akun table
-      userInstance = await tblAkun.findByPk(payload.id);
+      userInstance = await tblAkun.findByPk(payload.id, {
+        include: [
+          {
+            model: roleModel,
+            as: 'role',
+            include: [
+              {
+                model: permissionModel,
+                as: 'permissions',
+                where: { is_active: true },
+                required: false
+              }
+            ]
+          }
+        ]
+      });
+      console.log('userInstance', userInstance);
       if (!userInstance) {
         return res.status(401).json({
           status: 'failed',
@@ -100,4 +122,216 @@ const auth = async (req, res, next) => {
   }
 };
 
-module.exports = auth;
+// Simple permission checker
+const hasPermission = (permission) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User tidak terautentikasi'
+      });
+    }
+
+    // Super admin bypass
+    if (req.user.hasRole(ROLES.SUPER_ADMIN)) {
+      return next();
+    }
+
+    // Check permission
+    if (!req.user.hasPermission(permission)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Anda tidak memiliki izin untuk mengakses resource ini',
+        required_permission: permission,
+        user_role: req.user.role?.name
+      });
+    }
+
+    next();
+  };
+};
+
+// Simple role checker
+const hasRole = (role) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User tidak terautentikasi'
+      });
+    }
+
+    if (!req.user.hasRole(role)) {
+      return res.status(403).json({
+        success: false,
+        message: `Akses terbatas untuk ${role}`,
+        user_role: req.user.role?.name,
+        required_role: role
+      });
+    }
+
+    next();
+  };
+};
+
+// Multiple roles checker (OR logic)
+const hasAnyRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User tidak terautentikasi'
+      });
+    }
+
+    const hasAccess = roles.some((role) => req.user.hasRole(role));
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        success: false,
+        message: 'Anda tidak memiliki role yang diperlukan',
+        user_role: req.user.role?.name,
+        required_roles: roles
+      });
+    }
+
+    next();
+  };
+};
+
+// Ownership checker
+const isOwner = (ownerField = 'accountID') => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User tidak terautentikasi'
+      });
+    }
+
+    // Super admin bypass
+    if (req.user.hasRole(ROLES.SUPER_ADMIN)) {
+      return next();
+    }
+
+    // Check ownership
+    const resourceOwnerId = req.params[ownerField] || req.body[ownerField];
+
+    if (resourceOwnerId && resourceOwnerId !== req.user.accountID) {
+      return res.status(403).json({
+        success: false,
+        message: 'Anda hanya dapat mengakses data milik sendiri'
+      });
+    }
+
+    next();
+  };
+};
+
+// ========== PREDEFINED MIDDLEWARE COMBINATIONS ==========
+
+// Admin level access
+const requireAdmin = [auth, hasAnyRole([ROLES.SUPER_ADMIN, ROLES.OPERATOR_SUPER_ADMIN])];
+
+// Operator level access
+const requireOperator = [
+  auth,
+  hasAnyRole([ROLES.SUPER_ADMIN, ROLES.OPERATOR_SUPER_ADMIN, ROLES.OPERATOR_POKTAN])
+];
+
+// Any penyuluh access
+const requirePenyuluh = [auth, hasAnyRole([ROLES.PENYULUH_REGULER, ROLES.PENYULUH_SWADAYA])];
+
+// Reguler penyuluh only
+const requirePenyuluhReguler = [auth, hasRole(ROLES.PENYULUH_REGULER)];
+
+// Swadaya penyuluh only
+const requirePenyuluhSwadaya = [auth, hasRole(ROLES.PENYULUH_SWADAYA)];
+
+// Petani only
+const requirePetani = [auth, hasRole(ROLES.PETANI)];
+
+// Manager level (admin + reguler penyuluh)
+const requireManager = [
+  auth,
+  hasAnyRole([
+    ROLES.SUPER_ADMIN,
+    ROLES.OPERATOR_SUPER_ADMIN,
+    ROLES.OPERATOR_POKTAN,
+    ROLES.PENYULUH_REGULER
+  ])
+];
+
+// Data creator level (can create/edit data)
+const requireDataCreator = [
+  auth,
+  hasAnyRole([
+    ROLES.SUPER_ADMIN,
+    ROLES.OPERATOR_SUPER_ADMIN,
+    ROLES.OPERATOR_POKTAN,
+    ROLES.PENYULUH_REGULER
+  ])
+];
+
+// Data approver level (can approve data)
+const requireDataApprover = [
+  auth,
+  hasAnyRole([ROLES.SUPER_ADMIN, ROLES.OPERATOR_SUPER_ADMIN, ROLES.PENYULUH_REGULER])
+];
+
+// Content viewer level (can view content)
+const requireContentViewer = [
+  auth,
+  hasAnyRole([
+    ROLES.SUPER_ADMIN,
+    ROLES.OPERATOR_SUPER_ADMIN,
+    ROLES.OPERATOR_POKTAN,
+    ROLES.PENYULUH_REGULER,
+    ROLES.PENYULUH_SWADAYA,
+    ROLES.PETANI
+  ])
+];
+
+// Helper function untuk create custom middleware
+const createRoleMiddleware = (allowedRoles, errorMessage = null) => {
+  return [
+    auth,
+    (req, res, next) => {
+      const hasAccess = allowedRoles.some((role) => req.user.hasRole(role));
+
+      if (!hasAccess) {
+        return res.status(403).json({
+          success: false,
+          message: errorMessage || 'Anda tidak memiliki akses ke fitur ini',
+          user_role: req.user.role?.name,
+          required_roles: allowedRoles
+        });
+      }
+
+      next();
+    }
+  ];
+};
+module.exports = {
+  // Basic middleware
+  auth,
+  hasPermission,
+  hasRole,
+  hasAnyRole,
+  isOwner,
+
+  // Predefined combinations
+  requireAdmin,
+  requireOperator,
+  requirePenyuluh,
+  requirePenyuluhReguler,
+  requirePenyuluhSwadaya,
+  requirePetani,
+  requireManager,
+  requireDataCreator,
+  requireDataApprover,
+  requireContentViewer,
+
+  // Helper function
+  createRoleMiddleware
+};

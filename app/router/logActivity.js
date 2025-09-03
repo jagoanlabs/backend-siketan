@@ -5,7 +5,7 @@ const {
   deleteActivity,
   restoreActivity
 } = require('../controllers/logActivity');
-const auth = require('../../midleware/auth');
+const { auth } = require('../../midleware/auth');
 
 const router = require('express').Router();
 

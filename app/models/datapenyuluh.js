@@ -60,6 +60,11 @@ module.exports = (sequelize, DataTypes) => {
           model: 'desas',
           key: 'id'
         }
+      },
+      tipe: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: 'reguler'
       }
     },
     {
