@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { auth } = require('../../midleware/auth');
+const auth = require('../../midleware/auth');
 const upload = require('../../midleware/uploader');
 const {
   tambahDataPenyuluh,
@@ -48,7 +48,7 @@ router.put('/daftar-penyuluh/:id', auth, upload.single('foto'), updatePenyuluh);
 router.delete('/daftar-penyuluh/:id', auth, deleteDaftarPenyuluh);
 router.post('/upload-data-penyuluh', auth, upload.single('file'), uploadDataPenyuluh);
 router.get('/opsi-penyuluh', opsiPenyuluh);
-router.get('/kelompok-all', getKelompok);
+router.get('/kelompok-all', auth, getKelompok);
 router.get('/daftar-petani/:id', auth, getPetani);
 router.put('/penyuluh/fix/kecamatan', auth, changeKecamatanToId);
 router.put('/penyuluh/fix/desa', auth, changeDesaToId);

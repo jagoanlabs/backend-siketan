@@ -5,7 +5,6 @@ const {
   tbl_akun,
   dataPetani,
   dataPenyuluh,
-  dataOperator,
   kecamatan,
   desa
 } = require('../models');
@@ -47,22 +46,11 @@ const usersAll = async (req, res) => {
 
 const userVerify = async (req, res) => {
   const { page, limit, search, sort } = req.query;
-  const { peran: userRole } = req.user || {};
+  const { peran } = req.user || {};
 
   try {
-    // Hanya admin / super admin yang bisa akses
-    // Periksa kembali logika ini, sebelumnya adalah ['operator super admin']
-    // Tapi deskripsi menyebutkan selain operator super admin.
-    // Misalnya, operator super admin BISA mengakses, jadi kita biarkan.
-    // Jika maksudnya HANYA operator super admin, maka kondisi sudah benar.
-    // Jika maksudnya SELAIN operator super admin, maka kondisi harus dibalik.
-    // Berdasarkan deskripsi "Hanya admin / super admin yang bisa akses",
-    // dan kondisi sebelumnya, diasumsikan benar.
-    // Tapi nama role 'operator super admin' terlihat seperti satu role.
-    // Mungkin maksudnya adalah array ['super admin', 'admin']?
-    // Untuk saat ini, kita ikuti kode asli Anda.
-    // *** PERHATIAN: Periksa logika role ini ***
-    if (!['operator super admin'].includes(userRole)) {
+    // Restriksi role
+    if (['petani', 'penyuluh', 'operator poktan'].includes(peran)) {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     }
 
@@ -70,7 +58,7 @@ const userVerify = async (req, res) => {
     const limitFilter = Number(limit) || 10;
 
     // Sorting logic
-    let orderFilter = [['id', 'ASC']];
+    let orderFilter = [['id', 'ASC']]; // default
     if (sort === 'verified_desc') {
       orderFilter = [
         ['isVerified', 'DESC'],
@@ -90,93 +78,65 @@ const userVerify = async (req, res) => {
             { nama: { [Op.like]: `%${search}%` } },
             { no_wa: { [Op.like]: `%${search}%` } },
             { email: { [Op.like]: `%${search}%` } },
-            // Pencarian berdasarkan NIK di tabel terkait
-            { '$dataPetani.NIK$': { [Op.like]: `%${search}%` } },
-            { '$dataPenyuluh.NIK$': { [Op.like]: `%${search}%` } },
-            { '$dataOperator.NIK$': { [Op.like]: `%${search}%` } }
+            { '$dataPetani.NIK$': { [Op.like]: `%${search}%` } }
           ]
         }
       : {};
 
     // Query data
-    // *** PERUBAHAN UTAMA: required: false ***
     const query = {
       include: [
         {
           model: dataPetani,
-          required: false, // Tidak wajib, karena tidak semua user adalah petani
-          attributes: ['NIK']
-        },
-        {
-          model: dataPenyuluh,
-          required: false, // Tidak wajib, karena tidak semua user adalah penyuluh
-          attributes: ['NIK']
-        },
-        {
-          model: dataOperator,
-          required: false, // Tidak wajib, karena tidak semua user adalah operator
+          required: true,
           attributes: ['NIK']
         }
       ],
       where: {
-        // Hanya ambil user dengan peran tertentu
-        peran: { [Op.in]: ['petani', 'penyuluh', 'operator poktan'] },
-        // Tambahkan kondisi untuk memastikan user memiliki data di salah satu tabel terkait
-        // Ini memastikan bahwa hanya user yang sudah memiliki data profil lengkap yang diambil
-        [Op.or]: [
-          { '$dataPetani.id$': { [Op.not]: null } }, // Jika peran='petani', cek apakah ada dataPetani
-          { '$dataPenyuluh.id$': { [Op.not]: null } }, // Jika peran='penyuluh', cek apakah ada dataPenyuluh
-          { '$dataOperator.id$': { [Op.not]: null } } // Jika peran='operator poktan', cek apakah ada dataOperator
-        ],
+        peran: { [Op.not]: 'super admin' },
         ...searchCondition
       },
       attributes: ['id', 'nama', 'peran', 'no_wa', 'email', 'isVerified'],
       order: orderFilter,
       limit: limitFilter,
       offset: (pageFilter - 1) * limitFilter,
-      distinct: true // Penting karena menggunakan include
+      distinct: true // supaya count benar kalau ada include
     };
 
     const data = await tbl_akun.findAll(query);
 
-    // Query untuk count total - harus konsisten dengan query findAll
+    // untuk total, lebih aman pisahkan
     const total = await tbl_akun.count({
       include: [
-        { model: dataPetani, required: false, attributes: [] }, // attributes: [] untuk efisiensi
-        { model: dataPenyuluh, required: false, attributes: [] },
-        { model: dataOperator, required: false, attributes: [] }
+        {
+          model: dataPetani,
+          required: true
+        }
       ],
       where: {
-        peran: { [Op.in]: ['petani', 'penyuluh', 'operator poktan'] },
-        [Op.or]: [
-          { '$dataPetani.id$': { [Op.not]: null } },
-          { '$dataPenyuluh.id$': { [Op.not]: null } },
-          { '$dataOperator.id$': { [Op.not]: null } }
-        ],
+        peran: { [Op.not]: 'super admin' },
         ...searchCondition
       },
-      distinct: true // Penting karena menggunakan include
+      distinct: true
     });
 
-    // *** PERUBAHAN: Jangan throw error jika data kosong, cukup kirim response kosong ***
-    // if (data.length === 0) {
-    //   throw new ApiError(404, 'Data tidak ditemukan');
-    // }
+    if (data.length === 0) {
+      throw new ApiError(404, 'Data tidak ditemukan');
+    }
 
     res.status(200).json({
-      message: data.length > 0 ? 'Data berhasil diambil' : 'Tidak ada data yang sesuai kriteria',
+      message: 'Data berhasil diambil',
       data,
       total,
       currentPages: pageFilter,
       limit: limitFilter,
       maxPages: Math.ceil(total / limitFilter),
-      from: total > 0 ? (pageFilter - 1) * limitFilter + 1 : 0,
-      to: total > 0 ? (pageFilter - 1) * limitFilter + data.length : 0
+      from: (pageFilter - 1) * limitFilter + 1,
+      to: (pageFilter - 1) * limitFilter + data.length
     });
   } catch (error) {
-    console.error('Error in userVerify:', error); // Log error untuk debugging
     res.status(error.statusCode || 500).json({
-      message: error.message || 'Terjadi kesalahan pada server'
+      message: error.message
     });
   }
 };

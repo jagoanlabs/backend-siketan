@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { auth } = require('../../midleware/auth');
+const auth = require('../../midleware/auth');
 const upload = require('../../midleware/uploader');
 const {
   laporanPetani,
@@ -17,17 +17,6 @@ const {
   deleteTanamanPetaniById,
   uploadDataPetani
 } = require('../controllers/dataTani');
-const {
-  getAllTanamanPetani,
-  // getTanamanPetaniById,
-  tambahDataTanamanPetani,
-  // ubahTanamanPetaniById,
-  getDetailedDataTanamanPetani,
-  deleteDatatanamanPetani,
-  editDataTanamanPetani,
-  uploadDataTanamanPetani
-  // deleteTanamanPetaniById,
-} = require('../controllers/tanamanPetani');
 const { getAllDataTanaman } = require('../controllers/dataTanaman');
 
 router.post('/daftar-tani/add', auth, upload.single('foto'), tambahDaftarTani);
@@ -45,6 +34,17 @@ router.delete('/daftar-tani/:id', auth, deleteDaftarTani);
 router.get('/daftar-tani/:id', auth, dataTaniDetail);
 router.put('/daftar-tani/:id', auth, upload.single('foto'), updateTaniDetail);
 router.post('/upload-data-petani', auth, upload.single('file'), uploadDataPetani);
+const {
+  getAllTanamanPetani,
+  // getTanamanPetaniById,
+  tambahDataTanamanPetani,
+  // ubahTanamanPetaniById,
+  getDetailedDataTanamanPetani,
+  deleteDatatanamanPetani,
+  editDataTanamanPetani,
+  uploadDataTanamanPetani
+  // deleteTanamanPetaniById,
+} = require('../controllers/tanamanPetani');
 
 router.get('/list-tanaman', auth, getAllTanamanPetani);
 router.put('/list-tanaman/:id', auth, editDataTanamanPetani);
