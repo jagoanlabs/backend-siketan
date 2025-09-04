@@ -1,4 +1,5 @@
 const { Router } = require('express');
+const rbac = require('./rbac');
 const swaggerUI = require('swagger-ui-express');
 const swaggerDocument = require('../../docs/swagger.json');
 const router = Router();
@@ -60,5 +61,6 @@ router.use('/', laporanTanam);
 router.use('/', logActivity);
 router.use('/', dataOperator);
 router.use('/wilayah', wilayah);
+router.use('/rbac', rbac);
 
 module.exports = router;

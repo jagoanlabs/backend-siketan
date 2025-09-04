@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { auth } = require('../../midleware/auth');
+const { auth, hasPermission } = require('../../midleware/auth');
 const upload = require('../../midleware/uploader');
 const {
   laporanPetani,
@@ -29,28 +29,79 @@ const {
   // deleteTanamanPetaniById,
 } = require('../controllers/tanamanPetani');
 const { getAllDataTanaman } = require('../controllers/dataTanaman');
+const { PERMISSIONS } = require('../../helpers/roleHelpers');
 
-router.post('/daftar-tani/add', auth, upload.single('foto'), tambahDaftarTani);
+router.get('/daftar-tani', auth, hasPermission(PERMISSIONS.DATA_PETANI_INDEX), daftarTani);
+router.post(
+  '/daftar-tani/add',
+  auth,
+  upload.single('foto'),
+  hasPermission(PERMISSIONS.DATA_PETANI_CREATE),
+  tambahDaftarTani
+);
+router.get('/daftar-tani/:id', auth, hasPermission(PERMISSIONS.DATA_PETANI_DETAIL), dataTaniDetail);
+router.put(
+  '/daftar-tani/:id',
+  auth,
+  upload.single('foto'),
+  hasPermission(PERMISSIONS.DATA_PETANI_EDIT),
+  updateTaniDetail
+);
+router.delete(
+  '/daftar-tani/:id',
+  auth,
+  hasPermission(PERMISSIONS.DATA_PETANI_DELETE),
+  deleteDaftarTani
+);
+
 router.post('/laporan-tani/add', auth, upload.single('fotoTanaman'), tambahLaporanTani);
 router.get('/laporan-petani', auth, laporanPetani);
 router.get('/laporan-penyuluh', auth, laporanPenyuluh);
-router.get('/daftar-tani', auth, daftarTani);
 router.post('/tanaman-petani', auth, tambahTanamanPetani);
 router.get('/tanaman-petani/detail/:id', auth, getTanamanPetaniById);
 router.get('/statistik/', auth, getAllDataTanaman);
 router.get('/tanaman-petani/:id', auth, getLaporanPetani);
 router.put('/tanaman-petani/:id', auth, ubahTanamanPetaniById);
 router.delete('/tanaman-petani/:id', auth, deleteTanamanPetaniById);
-router.delete('/daftar-tani/:id', auth, deleteDaftarTani);
-router.get('/daftar-tani/:id', auth, dataTaniDetail);
-router.put('/daftar-tani/:id', auth, upload.single('foto'), updateTaniDetail);
 router.post('/upload-data-petani', auth, upload.single('file'), uploadDataPetani);
 
-router.get('/list-tanaman', auth, getAllTanamanPetani);
-router.put('/list-tanaman/:id', auth, editDataTanamanPetani);
-router.get('/list-tanaman/:id', auth, getDetailedDataTanamanPetani);
-router.post('/list-tanaman', auth, tambahDataTanamanPetani);
-router.post('/upload-tanaman', auth, upload.single('file'), uploadDataTanamanPetani);
-router.delete('/list-tanaman/:id', auth, deleteDatatanamanPetani);
+// Data tanaman petani
+router.get(
+  '/list-tanaman',
+  auth,
+  hasPermission(PERMISSIONS.TANAMAN_PETANI_INDEX),
+  getAllTanamanPetani
+);
+router.put(
+  '/list-tanaman/:id',
+  auth,
+  hasPermission(PERMISSIONS.TANAMAN_PETANI_EDIT),
+  editDataTanamanPetani
+);
+router.get(
+  '/list-tanaman/:id',
+  auth,
+  hasPermission(PERMISSIONS.TANAMAN_PETANI_DETAIL),
+  getDetailedDataTanamanPetani
+);
+router.post(
+  '/list-tanaman',
+  auth,
+  hasPermission(PERMISSIONS.TANAMAN_PETANI_CREATE),
+  tambahDataTanamanPetani
+);
+router.post(
+  '/upload-tanaman',
+  auth,
+  hasPermission(PERMISSIONS.TANAMAN_PETANI_CREATE),
+  upload.single('file'),
+  uploadDataTanamanPetani
+);
+router.delete(
+  '/list-tanaman/:id',
+  auth,
+  hasPermission(PERMISSIONS.TANAMAN_PETANI_DELETE),
+  deleteDatatanamanPetani
+);
 
 module.exports = router;

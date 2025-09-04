@@ -50,18 +50,7 @@ const userVerify = async (req, res) => {
   const { peran: userRole } = req.user || {};
 
   try {
-    // Hanya admin / super admin yang bisa akses
-    // Periksa kembali logika ini, sebelumnya adalah ['operator super admin']
-    // Tapi deskripsi menyebutkan selain operator super admin.
-    // Misalnya, operator super admin BISA mengakses, jadi kita biarkan.
-    // Jika maksudnya HANYA operator super admin, maka kondisi sudah benar.
-    // Jika maksudnya SELAIN operator super admin, maka kondisi harus dibalik.
-    // Berdasarkan deskripsi "Hanya admin / super admin yang bisa akses",
-    // dan kondisi sebelumnya, diasumsikan benar.
-    // Tapi nama role 'operator super admin' terlihat seperti satu role.
-    // Mungkin maksudnya adalah array ['super admin', 'admin']?
-    // Untuk saat ini, kita ikuti kode asli Anda.
-    // *** PERHATIAN: Periksa logika role ini ***
+    // Perbaiki logika role checking - gunakan helper yang sudah dibuat
     if (!['operator super admin'].includes(userRole)) {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     }
@@ -90,43 +79,41 @@ const userVerify = async (req, res) => {
             { nama: { [Op.like]: `%${search}%` } },
             { no_wa: { [Op.like]: `%${search}%` } },
             { email: { [Op.like]: `%${search}%` } },
-            // Pencarian berdasarkan NIK di tabel terkait
-            { '$dataPetani.NIK$': { [Op.like]: `%${search}%` } },
-            { '$dataPenyuluh.NIK$': { [Op.like]: `%${search}%` } },
-            { '$dataOperator.NIK$': { [Op.like]: `%${search}%` } }
+            { '$petani.NIK$': { [Op.like]: `%${search}%` } }, // Perbaiki reference
+            { '$penyuluh.NIK$': { [Op.like]: `%${search}%` } }, // Perbaiki reference
+            { '$operator.NIK$': { [Op.like]: `%${search}%` } } // Perbaiki reference
           ]
         }
       : {};
 
-    // Query data
-    // *** PERUBAHAN UTAMA: required: false ***
+    // Query data - Tambahkan alias 'as' dan perbaiki reference
     const query = {
       include: [
         {
           model: dataPetani,
-          required: false, // Tidak wajib, karena tidak semua user adalah petani
+          as: 'petani', // 👈 Tambahkan alias
+          required: false,
           attributes: ['NIK']
         },
         {
           model: dataPenyuluh,
-          required: false, // Tidak wajib, karena tidak semua user adalah penyuluh
+          as: 'penyuluh', // 👈 Tambahkan alias
+          required: false,
           attributes: ['NIK']
         },
         {
           model: dataOperator,
-          required: false, // Tidak wajib, karena tidak semua user adalah operator
+          as: 'operator', // 👈 Tambahkan alias
+          required: false,
           attributes: ['NIK']
         }
       ],
       where: {
-        // Hanya ambil user dengan peran tertentu
         peran: { [Op.in]: ['petani', 'penyuluh', 'operator poktan'] },
-        // Tambahkan kondisi untuk memastikan user memiliki data di salah satu tabel terkait
-        // Ini memastikan bahwa hanya user yang sudah memiliki data profil lengkap yang diambil
         [Op.or]: [
-          { '$dataPetani.id$': { [Op.not]: null } }, // Jika peran='petani', cek apakah ada dataPetani
-          { '$dataPenyuluh.id$': { [Op.not]: null } }, // Jika peran='penyuluh', cek apakah ada dataPenyuluh
-          { '$dataOperator.id$': { [Op.not]: null } } // Jika peran='operator poktan', cek apakah ada dataOperator
+          { '$petani.id$': { [Op.not]: null } }, // Perbaiki reference sesuai alias
+          { '$penyuluh.id$': { [Op.not]: null } }, // Perbaiki reference sesuai alias
+          { '$operator.id$': { [Op.not]: null } } // Perbaiki reference sesuai alias
         ],
         ...searchCondition
       },
@@ -134,34 +121,44 @@ const userVerify = async (req, res) => {
       order: orderFilter,
       limit: limitFilter,
       offset: (pageFilter - 1) * limitFilter,
-      distinct: true // Penting karena menggunakan include
+      distinct: true
     };
 
     const data = await tbl_akun.findAll(query);
 
-    // Query untuk count total - harus konsisten dengan query findAll
+    // Query untuk count total - juga perlu alias
     const total = await tbl_akun.count({
       include: [
-        { model: dataPetani, required: false, attributes: [] }, // attributes: [] untuk efisiensi
-        { model: dataPenyuluh, required: false, attributes: [] },
-        { model: dataOperator, required: false, attributes: [] }
+        {
+          model: dataPetani,
+          as: 'petani', // 👈 Tambahkan alias
+          required: false,
+          attributes: []
+        },
+        {
+          model: dataPenyuluh,
+          as: 'penyuluh', // 👈 Tambahkan alias
+          required: false,
+          attributes: []
+        },
+        {
+          model: dataOperator,
+          as: 'operator', // 👈 Tambahkan alias
+          required: false,
+          attributes: []
+        }
       ],
       where: {
         peran: { [Op.in]: ['petani', 'penyuluh', 'operator poktan'] },
         [Op.or]: [
-          { '$dataPetani.id$': { [Op.not]: null } },
-          { '$dataPenyuluh.id$': { [Op.not]: null } },
-          { '$dataOperator.id$': { [Op.not]: null } }
+          { '$petani.id$': { [Op.not]: null } },
+          { '$penyuluh.id$': { [Op.not]: null } },
+          { '$operator.id$': { [Op.not]: null } }
         ],
         ...searchCondition
       },
-      distinct: true // Penting karena menggunakan include
+      distinct: true
     });
-
-    // *** PERUBAHAN: Jangan throw error jika data kosong, cukup kirim response kosong ***
-    // if (data.length === 0) {
-    //   throw new ApiError(404, 'Data tidak ditemukan');
-    // }
 
     res.status(200).json({
       message: data.length > 0 ? 'Data berhasil diambil' : 'Tidak ada data yang sesuai kriteria',
@@ -174,7 +171,7 @@ const userVerify = async (req, res) => {
       to: total > 0 ? (pageFilter - 1) * limitFilter + data.length : 0
     });
   } catch (error) {
-    console.error('Error in userVerify:', error); // Log error untuk debugging
+    console.error('Error in userVerify:', error);
     res.status(error.statusCode || 500).json({
       message: error.message || 'Terjadi kesalahan pada server'
     });

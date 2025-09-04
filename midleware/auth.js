@@ -50,7 +50,22 @@ const auth = async (req, res, next) => {
 
     if (payload.NIK) {
       // Find in dataPerson table
-      userInstance = await dataPerson.findByPk(payload.id);
+      userInstance = await dataPerson.findByPk(payload.id, {
+        include: [
+          {
+            model: roleModel,
+            as: 'role',
+            include: [
+              {
+                model: permissionModel,
+                as: 'permissions',
+                where: { is_active: true },
+                required: false
+              }
+            ]
+          }
+        ]
+      });
       if (!userInstance) {
         return res.status(401).json({
           status: 'failed',

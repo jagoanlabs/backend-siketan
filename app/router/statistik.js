@@ -13,19 +13,19 @@ const {
   fixKomoditas
 } = require('../controllers/dataTanaman');
 
-router.post('/', hasPermission(PERMISSIONS.STATISTIC_CREATE), auth, tambahDataTanaman);
-router.get('/', hasPermission(PERMISSIONS.STATISTIC_INDEX), auth, getAllDataTanaman);
-router.get('/:id', hasPermission(PERMISSIONS.STATISTIC_INDEX), auth, getDetailedDataTanaman);
-router.put('/:id', hasPermission(PERMISSIONS.STATISTIC_EDIT), auth, editDataTanaman);
-router.delete('/:id', hasPermission(PERMISSIONS.STATISTIC_DELETE), auth, hapusDataTanaman);
+router.post('/', auth, hasPermission(PERMISSIONS.STATISTIC_CREATE), tambahDataTanaman);
+router.get('/', auth, hasPermission(PERMISSIONS.STATISTIC_INDEX), getAllDataTanaman);
+router.get('/:id', auth, hasPermission(PERMISSIONS.STATISTIC_INDEX), getDetailedDataTanaman);
+router.put('/:id', auth, hasPermission(PERMISSIONS.STATISTIC_EDIT), editDataTanaman);
+router.delete('/:id', auth, hasPermission(PERMISSIONS.STATISTIC_DELETE), hapusDataTanaman);
 router.post(
   '/upload',
-  hasPermission(PERMISSIONS.STATISTIC_CREATE),
   auth,
+  hasPermission(PERMISSIONS.STATISTIC_CREATE),
   upload.single('file'),
   uploadDataTanaman
 );
-router.put('/fix/category', hasPermission(PERMISSIONS.STATISTIC_EDIT), auth, fixKategori);
+router.put('/fix/category', auth, fixKategori);
 router.put('/fix/commodity', auth, fixKomoditas);
 
 module.exports = router;
