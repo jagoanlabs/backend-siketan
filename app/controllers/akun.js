@@ -25,7 +25,6 @@ const { postActivity } = require('./logActivity');
 
 dotenv.config();
 
-// login semua akun (penyuluh, operator)
 const login = async (req, res) => {
   try {
     const { email = '', password = '' } = req.body;
@@ -79,18 +78,9 @@ const login = async (req, res) => {
   }
 };
 
-// register akun baru yang hanya mengisi tblAkun
 const register = async (req, res) => {
   try {
-    const {
-      email,
-      no_wa,
-      nama,
-      password,
-      pekerjaan = '',
-      peran = ''
-      // tipe_penyuluh = 'reguler'
-    } = req.body;
+    const { email, no_wa, nama, password, pekerjaan = '', peran = '' } = req.body;
     const { file } = req;
     const User = await tblAkun.findOne({ where: { email } });
     // validasi
@@ -102,7 +92,6 @@ const register = async (req, res) => {
     if (!no_wa) throw new ApiError(400, 'no wa tidak boleh kosong.');
     if (!nama) throw new ApiError(400, 'Nama tidak boleh kosong.');
     if (User) throw new ApiError(400, 'Email telah terdaftar.');
-    // if (!tipe_penyuluh) throw new ApiError(400, 'Tipe penyuluh tidak boleh kosong.');
     if (password.length < 8) {
       throw new ApiError(400, 'Masukkan password minimal 8 karakter');
     }
@@ -170,266 +159,6 @@ const register = async (req, res) => {
     });
   }
 };
-
-// register penyuluh
-const registerPenyuluh = async (req, res) => {
-  try {
-    const {
-      NIP,
-      email,
-      NoWa,
-      alamat,
-      desa: inputDesa,
-      desaId,
-      nama,
-      kecamatan: inputKecamatan,
-      kecamatanId,
-      password,
-      namaProduct,
-      kecamatanBinaan,
-      desaBinaan,
-      selectedKelompokIds,
-      pekerjaan,
-      tipe
-    } = req.body;
-    console.log(req.body);
-    // const kelompokArray = selectedKelompokIds.split(',');
-    const hashedPassword = bcrypt.hashSync(password, 10);
-    const accountID = crypto.randomUUID();
-    const { file } = req;
-    const penyuluh = await dataPenyuluh.findOne({
-      where: { nik: NIP }
-    });
-    let urlImg;
-    if (!NIP) {
-      throw new ApiError(400, 'NIP tidak boleh kosong');
-    }
-    if (!nama) {
-      throw new ApiError(400, 'nama tidak boleh kosong');
-    }
-    if (penyuluh) {
-      throw new ApiError(400, 'NIP sudah digunakan');
-    }
-    if (file) {
-      const validFormat =
-        file.mimetype === 'image/png' ||
-        file.mimetype === 'image/jpg' ||
-        file.mimetype === 'image/jpeg' ||
-        file.mimetype === 'image/gif';
-      if (!validFormat) {
-        return res.status(400).json({
-          status: 'failed',
-          message: 'Wrong Image Format'
-        });
-      }
-      const split = file.originalname.split('.');
-      const ext = split[split.length - 1];
-
-      // upload file ke imagekit
-      try {
-        const img = await imageKit.upload({
-          file: file.buffer,
-          fileName: `IMG-${Date.now()}.${ext}`
-        });
-        urlImg = img.url;
-      } catch (uploadError) {
-        console.error('Error uploading image:', uploadError.message);
-        // Handle the error, and possibly return an error response to the client.
-        return res.status(500).json({
-          status: 'failed',
-          message: 'Error uploading image.'
-        });
-      }
-    }
-
-    {
-      /* Membuat akun untuk penyuluh yang didaftarkan */
-    }
-    let newAccount;
-    if (tipe === 'reguler') {
-      const role = await roleModel.findOne({
-        where: { name: 'penyuluh' }
-      });
-      newAccount = await tblAkun.create({
-        email,
-        password: hashedPassword,
-        no_wa: NoWa,
-        nama,
-        pekerjaan,
-        peran: 'penyuluh',
-        foto: urlImg,
-        accountID: accountID,
-        isVerified: false,
-        role_id: role.id
-      });
-    } else if (tipe === 'swadaya') {
-      const role = await roleModel.findOne({
-        where: { name: 'penyuluh_swadaya' }
-      });
-      newAccount = await tblAkun.create({
-        email,
-        password: hashedPassword,
-        no_wa: NoWa,
-        nama,
-        pekerjaan,
-        peran: 'penyuluh_swadaya',
-        foto: urlImg,
-        accountID: accountID,
-        isVerified: false,
-        role_id: role.id
-      });
-    }
-    {
-      /* Menambahkan penyuluh yang didaftarkan */
-    }
-    let kecamatanData = null;
-    let desaData = null;
-
-    // Jika kecamatanId provided, cari datanya
-    if (kecamatanId) {
-      kecamatanData = await kecamatan.findByPk(kecamatanId);
-      if (!kecamatanData) {
-        throw new ApiError(400, `Kecamatan dengan ID ${kecamatanId} tidak ditemukan`);
-      }
-    } else if (inputKecamatan) {
-      // Jika nama kecamatan provided, cari by name
-      kecamatanData = await kecamatan.findOne({
-        where: { nama: inputKecamatan }
-      });
-      if (!kecamatanData) {
-        throw new ApiError(400, `Kecamatan ${inputKecamatan} tidak ditemukan`);
-      }
-    }
-
-    // Logic yang sama untuk desa
-    if (desaId) {
-      desaData = await desa.findByPk(desaId);
-      if (!desaData) {
-        throw new ApiError(400, `Desa dengan ID ${desaId} tidak ditemukan`);
-      }
-    } else if (inputDesa) {
-      desaData = await desa.findOne({
-        where: { nama: inputDesa }
-      });
-      if (!desaData) {
-        throw new ApiError(400, `Desa ${inputDesa} tidak ditemukan`);
-      }
-    }
-    const newPenyuluh = await dataPenyuluh.create({
-      nik: NIP,
-      nama: nama,
-      foto: urlImg,
-      alamat,
-      email,
-      noTelp: NoWa,
-      kecamatan: inputKecamatan,
-      desa: inputDesa,
-      password: hashedPassword,
-      namaProduct,
-      desaBinaan: desaBinaan,
-      kecamatanBinaan,
-      accountID: accountID,
-      kecamatanId: kecamatanData ? kecamatanData.id : null,
-      desaId: desaData ? desaData.id : null,
-      tipe: tipe
-    });
-    // // Convert each element of kelompokArray to an integer
-    // const integerKelompokArray = kelompokArray.map((kelompokId) => parseInt(kelompokId, 10))
-
-    // ============ TAMBAHKAN CODE INI ============
-    // CREATE KECAMATAN BINAAN
-    if (kecamatanBinaan) {
-      try {
-        // Cari kecamatan berdasarkan nama
-        const kecamatanBinaanData = await kecamatan.findOne({
-          where: { nama: kecamatanBinaan }
-        });
-
-        if (kecamatanBinaanData) {
-          await KecamatanBinaanModel.create({
-            penyuluhId: newPenyuluh.id,
-            kecamatanId: kecamatanBinaanData.id
-          });
-          console.log('Kecamatan binaan created:', kecamatanBinaanData.nama);
-        }
-      } catch (kecamatanError) {
-        console.error('Error creating kecamatan binaan:', kecamatanError);
-      }
-    }
-
-    // CREATE DESA BINAAN
-
-    // 2. CREATE DESA BINAAN
-    if (desaBinaan && desaBinaan.trim() !== '') {
-      try {
-        // ✅ Split by comma and trim each nama desa
-        const desaBinaanArray = desaBinaan
-          .split(',')
-          .map((nama) => nama.trim())
-          .filter((nama) => nama !== '');
-
-        console.log('Processing desa binaan:', desaBinaanArray);
-
-        for (const namaDesaBinaan of desaBinaanArray) {
-          // ✅ Find desa by NAMA (not ID)
-          const desaData = await desa.findOne({
-            where: { nama: namaDesaBinaan }
-          });
-
-          if (desaData) {
-            await DesaBinaanModel.create({
-              // ✅ Using renamed model
-              penyuluhId: newPenyuluh.id,
-              desaId: desaData.id
-            });
-            console.log('✅ Desa binaan created:', namaDesaBinaan, '(ID:', desaData.id, ')');
-          } else {
-            console.log('⚠️ Desa binaan not found:', namaDesaBinaan);
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error creating desa binaan:', error);
-      }
-    }
-
-    // UPDATE KELOMPOK (jika ada selectedKelompokIds)
-    if (selectedKelompokIds && selectedKelompokIds.trim() !== '') {
-      try {
-        const kelompokIdArray = selectedKelompokIds
-          .split(',')
-          .map((id) => parseInt(id.trim()))
-          .filter((id) => !isNaN(id));
-
-        console.log('Processing kelompok IDs:', kelompokIdArray);
-
-        for (const kelompokId of kelompokIdArray) {
-          const kelompokData = await kelompok.findByPk(kelompokId);
-          if (kelompokData) {
-            await kelompokData.update({
-              penyuluh: newPenyuluh.id
-            });
-            console.log('✅ Kelompok updated:', kelompokId);
-          } else {
-            console.log('⚠️ Kelompok not found:', kelompokId);
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error updating kelompok:', error);
-      }
-    }
-    // ============ END OF NEW CODE ============
-    res.status(200).json({
-      message: 'berhasil menambahkan data Penyuluh',
-      newPenyuluh,
-      newAccount
-    });
-  } catch (error) {
-    res.status(error.statusCode || 500).json({
-      message: error.message
-    });
-  }
-};
-
 const loginPetani = async (req, res) => {
   try {
     const { NIK = '', password = '' } = req.body;
@@ -440,9 +169,9 @@ const loginPetani = async (req, res) => {
         'Masukkan NIK untuk Petani atau NIP untuk Penyuluh, tidak bisa keduanya.'
       );
     }
+
     if (NIK) {
       const userPetani = await dataPetani.findOne({ where: { NIK } });
-      console.log(userPetani);
       if (!userPetani) throw new ApiError(400, 'NIK tidak terdaftar.');
 
       console.log(userPetani.accountID); //ada accound id dan ada accountID di dalam userPetani
@@ -734,12 +463,12 @@ const opsiPenyuluh = async (req, res) => {
         { model: kecamatan, as: 'kecamatanData' },
         { model: desa, as: 'desaData' },
         {
-          model: KecamatanBinaanModel,
+          model: kecamatanBinaan,
           as: 'kecamatanBinaanData',
           include: [{ model: kecamatan }]
         },
         {
-          model: DesaBinaanModel,
+          model: desaBinaan,
           as: 'desaBinaanData',
           include: [{ model: desa }]
         }
@@ -879,7 +608,7 @@ const getProfile = async (req, res) => {
           { model: kecamatan, as: 'kecamatanData' },
           { model: desa, as: 'desaData' },
           {
-            model: KecamatanBinaanModel,
+            model: kecamatanBinaan,
             as: 'kecamatanBinaanData',
             include: [
               {
@@ -888,7 +617,7 @@ const getProfile = async (req, res) => {
             ]
           },
           {
-            model: DesaBinaanModel,
+            model: desaBinaan,
             as: 'desaBinaanData',
             include: [
               {
@@ -949,7 +678,7 @@ const getDetailProfile = async (req, res) => {
               as: 'desaData'
             },
             {
-              model: KecamatanBinaanModel,
+              model: kecamatanBinaan,
               as: 'kecamatanBinaanData',
               include: [
                 {
@@ -958,7 +687,7 @@ const getDetailProfile = async (req, res) => {
               ]
             },
             {
-              model: DesaBinaanModel,
+              model: desaBinaan,
               as: 'desaBinaanData',
               include: [
                 {
@@ -1411,7 +1140,12 @@ const ubahPeran = async (req, res) => {
     const jsonDetailUser = JSON.parse(JSON.stringify(detailUser));
     const jsonUser = JSON.parse(JSON.stringify(user));
 
-    const { id, createdAt, updatedAt, ...payload } = {
+    const {
+      id: unusedId,
+      createdAt,
+      updatedAt,
+      ...payload
+    } = {
       ...jsonDetailUser,
       ...jsonUser,
       noTelp: jsonDetailUser?.noTelp || jsonUser.no_wa
@@ -1697,6 +1431,5 @@ module.exports = {
   opsiPenyuluh,
   opsiPoktan,
   changeKecamatanToId,
-  changeDesaToId,
-  registerPenyuluh
+  changeDesaToId
 };
