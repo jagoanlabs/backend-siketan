@@ -22,8 +22,8 @@ router.post(
   upload.single('fotoBerita'),
   tambahInfoTani
 );
-router.get('/info-tani/:id', auth, hasPermission(PERMISSIONS.BERITA_PETANI_DETAIL), infoTaniById);
-router.get('/info-tani', auth, hasPermission(PERMISSIONS.BERITA_PETANI_INDEX), infoTani);
+router.get('/info-tani/:id', infoTaniById);
+router.get('/info-tani', infoTani);
 router.put(
   '/info-tani/:id',
   auth,
@@ -45,8 +45,8 @@ router.post(
   upload.single('fotoKegiatan'),
   tambahEventTani
 );
-router.get('/event-tani', auth, hasPermission(PERMISSIONS.ACARA_PETANI_INDEX), eventTani);
-router.get('/event-tani/:id', auth, hasPermission(PERMISSIONS.ACARA_PETANI_DETAIL), eventTaniById);
+router.get('/event-tani', eventTani);
+router.get('/event-tani/:id', eventTaniById);
 router.delete(
   '/event-tani/:id',
   auth,

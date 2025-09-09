@@ -12,7 +12,8 @@ const {
   desa,
   kecamatanBinaan: KecamatanBinaanModel,
   desaBinaan: DesaBinaanModel,
-  role: roleModel
+  role: roleModel,
+  permission: permissionModel
 } = require('../models');
 const ApiError = require('../../utils/ApiError');
 const isEmailValid = require('../../utils/emailValidation');
@@ -28,12 +29,29 @@ dotenv.config();
 const login = async (req, res) => {
   try {
     const { email = '', password = '' } = req.body;
-    const user = await tblAkun.findOne({ where: { email } });
+    const user = await tblAkun.findOne({
+      where: { email },
+      include: [
+        {
+          model: roleModel,
+          as: 'role',
+          include: [
+            {
+              model: permissionModel,
+              as: 'permissions',
+              where: { is_active: true },
+              required: false
+            }
+          ]
+        }
+      ]
+    });
     if (!user) throw new ApiError(400, 'Email tidak terdaftar.');
     if (user.peran === 'petani') {
       throw new ApiError(403, 'Anda tidak memiliki akses');
     }
-    if (user.peran !== 'operator super admin' && user.isVerified === false) {
+    console.log('user', user);
+    if (user.isVerified === false) {
       throw new ApiError(403, 'Akun belum diverifikasi oleh admin, mohon menunggu');
     }
     if (!bcrypt.compareSync(password, user.password)) {
@@ -428,8 +446,24 @@ const loginPetani = async (req, res) => {
       if (!userPetani) throw new ApiError(400, 'NIK tidak terdaftar.');
 
       console.log(userPetani.accountID); //ada accound id dan ada accountID di dalam userPetani
-      const user = await tblAkun.findOne({ where: { accountID: userPetani.accountID } });
-      console.log(user); //selalu null
+      const user = await tblAkun.findOne({
+        where: { accountID: userPetani.accountID },
+        include: [
+          {
+            model: roleModel,
+            as: 'role',
+            include: [
+              {
+                model: permissionModel,
+                as: 'permissions',
+                where: { is_active: true },
+                required: false
+              }
+            ]
+          }
+        ]
+      });
+      console.log(user); //
 
       if (!user.isVerified) {
         throw new ApiError(400, 'Akun belum diverifikasi oleh admin, mohon menunggu');
@@ -466,7 +500,7 @@ const loginPetani = async (req, res) => {
       return res.status(200).json({
         message: 'Login berhasil.',
         token,
-        user: userPetani
+        user: user
       });
     } else {
       throw new ApiError(400, 'NIK tidak boleh kosong.');
@@ -608,6 +642,7 @@ const registerPetani = async (req, res) => {
       });
       urlImg = img.url;
     }
+    const role = await roleModel.findOne({ where: { name: 'petani' } });
     const newUser = await tblAkun.create({
       email: email,
       password: hashedPassword,
@@ -616,7 +651,8 @@ const registerPetani = async (req, res) => {
       pekerjaan: '',
       peran: 'petani',
       foto: urlImg,
-      accountID
+      accountID: accountID,
+      role_id: role.id
     });
 
     let kecamatanData;
@@ -658,7 +694,7 @@ const registerPetani = async (req, res) => {
       password: hashedPassword,
       email: email,
       noTelp: NoWa,
-      accountID,
+      accountID: accountID,
       fk_penyuluhId: penyuluhData.id,
       fk_kelompokId: kelompokData.id,
       kecamatanId: kecamatanId || kecamatanData.id,
@@ -812,7 +848,9 @@ const getProfile = async (req, res) => {
 
     let role;
 
-    if (user.peran === 'petani') {
+    const roleData = await roleModel.findOne({ where: { id: user.role_id } });
+
+    if (user.peran === 'petani' || roleData.name === 'petani') {
       role = await dataPetani.findOne({
         where: { accountID: user.accountID },
         include: [
@@ -829,7 +867,11 @@ const getProfile = async (req, res) => {
           exclude: ['createdAt', 'updatedAt', 'password']
         }
       });
-    } else {
+    } else if (
+      user.peran === 'penyuluh' ||
+      roleData.name === 'penyuluh' ||
+      roleData.name === 'penyuluh_swadaya'
+    ) {
       role = await dataPenyuluh.findOne({
         where: { accountID: user.accountID },
         include: [
@@ -861,8 +903,14 @@ const getProfile = async (req, res) => {
           }
         ]
       });
+    } else if (user.peran === 'operator' || roleModel.name === 'operator_poktan') {
+      role = await dataOperator.findOne({
+        where: { accountID: user.accountID },
+        attributes: {
+          exclude: ['createdAt', 'updatedAt', 'password']
+        }
+      });
     }
-
     return res.status(200).json({
       message: 'berhasil',
       userAccount: user,
@@ -877,10 +925,15 @@ const getProfile = async (req, res) => {
 
 const getDetailProfile = async (req, res) => {
   try {
-    const { accountID, peran } = req.user;
+    const { accountID, peran, role } = req.user;
+    // console.log('role user', role);
+    // const roleData = await roleModel.findOne({ where: { id: peran } });
+    console.log('account id is ', accountID);
+    console.log('role is ', role);
+    console.log('peran is ', peran);
     if (accountID) {
       let data;
-      if (peran === 'penyuluh') {
+      if (peran === 'penyuluh' || role.name === 'penyuluh' || role.name === 'penyuluh_swadaya') {
         data = await dataPenyuluh.findOne({
           where: { accountID: accountID },
           include: [
@@ -915,7 +968,7 @@ const getDetailProfile = async (req, res) => {
             }
           ]
         });
-      } else if (peran === 'petani') {
+      } else if (peran === 'petani' || role.name === 'petani') {
         data = await dataPetani.findOne({
           where: { accountID: accountID },
           include: [
@@ -944,15 +997,18 @@ const getDetailProfile = async (req, res) => {
             }
           ]
         });
-      } else {
+      } else if (peran === 'operator poktan' || role.name === 'operator_poktan') {
+        // 
         data = await dataOperator.findOne({
-          where: { accountID: accountID },
+          where: { accountID: accountID }, //mengapa selalu undifined walaupun accountID nya cocok?
           include: [
             {
               model: tblAkun
             }
           ]
         });
+      } else {
+        data = await tblAkun.findOne({ where: { accountID: accountID } });
       }
       res.status(200).json({
         message: 'berhasil',
@@ -1087,11 +1143,11 @@ const updateDetailProfile = async (req, res) => {
 
       newDataPenyuluh && accountUpdate
         ? res.status(200).json({
-            message: 'Berhasil Mengubah Profil'
-          })
+          message: 'Berhasil Mengubah Profil'
+        })
         : res.status(400).json({
-            message: 'Gagal Mengubah Profil'
-          });
+          message: 'Gagal Mengubah Profil'
+        });
     } else if (peran === 'petani') {
       const {
         nik,
@@ -1206,11 +1262,11 @@ const updateDetailProfile = async (req, res) => {
       );
       petaniUpdate && accountUpdate
         ? res.status(200).json({
-            message: 'Berhasil Mengubah Profil'
-          })
+          message: 'Berhasil Mengubah Profil'
+        })
         : res.status(400).json({
-            message: 'Gagal Mengubah Profil'
-          });
+          message: 'Gagal Mengubah Profil'
+        });
     } else {
       const { nik, email, whatsapp, alamat, desa, nama, kecamatan, baru } = req.body;
       const data = await dataOperator.findOne({
@@ -1298,8 +1354,8 @@ const getPeran = async (req, res) => {
     // filter pencarian
     const where = search
       ? {
-          [Op.or]: [{ nama: { [Op.like]: `%${search}%` } }, { email: { [Op.like]: `%${search}%` } }]
-        }
+        [Op.or]: [{ nama: { [Op.like]: `%${search}%` } }, { email: { [Op.like]: `%${search}%` } }]
+      }
       : {};
 
     const query = {
