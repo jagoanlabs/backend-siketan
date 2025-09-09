@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const auth = require('../../midleware/auth');
+const hasPermission = require('../../midleware/hasPermission');
 const upload = require('../../midleware/uploader');
 const {
   tambahDataTanaman,
@@ -11,13 +12,20 @@ const {
   fixKategori,
   fixKomoditas
 } = require('../controllers/dataTanaman');
+const { PERMISSIONS } = require('../../helpers/roleHelpers');
 
-router.post('/', auth, tambahDataTanaman);
-router.get('/', auth, getAllDataTanaman);
-router.get('/:id', auth, getDetailedDataTanaman);
-router.put('/:id', auth, editDataTanaman);
-router.delete('/:id', auth, hapusDataTanaman);
-router.post('/upload', auth, upload.single('file'), uploadDataTanaman);
+router.post('/', auth, hasPermission(PERMISSIONS.STATISTIC_CREATE), tambahDataTanaman);
+router.get('/', auth, hasPermission(PERMISSIONS.STATISTIC_INDEX), getAllDataTanaman);
+router.get('/:id', auth, hasPermission(PERMISSIONS.STATISTIC_INDEX), getDetailedDataTanaman);
+router.put('/:id', auth, hasPermission(PERMISSIONS.STATISTIC_EDIT), editDataTanaman);
+router.delete('/:id', auth, hasPermission(PERMISSIONS.STATISTIC_DELETE), hapusDataTanaman);
+router.post(
+  '/upload',
+  auth,
+  hasPermission(PERMISSIONS.STATISTIC_CREATE),
+  upload.single('file'),
+  uploadDataTanaman
+);
 router.put('/fix/category', auth, fixKategori);
 router.put('/fix/commodity', auth, fixKomoditas);
 

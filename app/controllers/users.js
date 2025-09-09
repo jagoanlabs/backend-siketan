@@ -6,7 +6,8 @@ const {
   dataPetani,
   dataPenyuluh,
   kecamatan,
-  desa
+  desa,
+  dataOperator
 } = require('../models');
 const { Op } = require('sequelize');
 
@@ -46,11 +47,11 @@ const usersAll = async (req, res) => {
 
 const userVerify = async (req, res) => {
   const { page, limit, search, sort } = req.query;
-  const { peran } = req.user || {};
+  const { peran: userRole } = req.user || {};
 
   try {
-    // Restriksi role
-    if (['petani', 'penyuluh', 'operator poktan'].includes(peran)) {
+    // Perbaiki logika role checking - gunakan helper yang sudah dibuat
+    if (!['operator super admin'].includes(userRole)) {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     }
 
@@ -78,22 +79,42 @@ const userVerify = async (req, res) => {
             { nama: { [Op.like]: `%${search}%` } },
             { no_wa: { [Op.like]: `%${search}%` } },
             { email: { [Op.like]: `%${search}%` } },
-            { '$dataPetani.NIK$': { [Op.like]: `%${search}%` } }
+            { '$petani.NIK$': { [Op.like]: `%${search}%` } }, // Perbaiki reference
+            { '$penyuluh.NIK$': { [Op.like]: `%${search}%` } }, // Perbaiki reference
+            { '$operator.NIK$': { [Op.like]: `%${search}%` } } // Perbaiki reference
           ]
         }
       : {};
 
-    // Query data
+    // Query data - Tambahkan alias 'as' dan perbaiki reference
     const query = {
       include: [
         {
           model: dataPetani,
-          required: true,
+          as: 'petani', // 👈 Tambahkan alias
+          required: false,
+          attributes: ['NIK']
+        },
+        {
+          model: dataPenyuluh,
+          as: 'penyuluh', // 👈 Tambahkan alias
+          required: false,
+          attributes: ['NIK']
+        },
+        {
+          model: dataOperator,
+          as: 'operator', // 👈 Tambahkan alias
+          required: false,
           attributes: ['NIK']
         }
       ],
       where: {
-        peran: { [Op.not]: 'super admin' },
+        peran: { [Op.in]: ['petani', 'penyuluh', 'operator poktan'] },
+        [Op.or]: [
+          { '$petani.id$': { [Op.not]: null } }, // Perbaiki reference sesuai alias
+          { '$penyuluh.id$': { [Op.not]: null } }, // Perbaiki reference sesuai alias
+          { '$operator.id$': { [Op.not]: null } } // Perbaiki reference sesuai alias
+        ],
         ...searchCondition
       },
       attributes: ['id', 'nama', 'peran', 'no_wa', 'email', 'isVerified'],
@@ -105,24 +126,44 @@ const userVerify = async (req, res) => {
 
     const data = await tbl_akun.findAll(query);
 
-    // untuk total, lebih aman pisahkan
+    // Query untuk count total - juga perlu alias
     const total = await tbl_akun.count({
       include: [
         {
           model: dataPetani,
-          required: true
+          as: 'petani', // 👈 Tambahkan alias
+          required: false,
+          attributes: []
+        },
+        {
+          model: dataPenyuluh,
+          as: 'penyuluh', // 👈 Tambahkan alias
+          required: false,
+          attributes: []
+        },
+        {
+          model: dataOperator,
+          as: 'operator', // 👈 Tambahkan alias
+          required: false,
+          attributes: []
         }
       ],
       where: {
-        peran: { [Op.not]: 'super admin' },
+        peran: { [Op.in]: ['petani', 'penyuluh', 'operator poktan'] },
+        [Op.or]: [
+          { '$petani.id$': { [Op.not]: null } },
+          { '$penyuluh.id$': { [Op.not]: null } },
+          { '$operator.id$': { [Op.not]: null } }
+        ],
         ...searchCondition
       },
       distinct: true
     });
 
-    if (data.length === 0) {
-      throw new ApiError(404, 'Data tidak ditemukan');
-    }
+    // *** PERUBAHAN: Jangan throw error jika data kosong, cukup kirim response kosong ***
+    // if (data.length === 0) {
+    //   throw new ApiError(404, 'Data tidak ditemukan');
+    // }
 
     res.status(200).json({
       message: 'Data berhasil diambil',
@@ -135,6 +176,7 @@ const userVerify = async (req, res) => {
       to: (pageFilter - 1) * limitFilter + data.length
     });
   } catch (error) {
+    console.error('Error in userVerify:', error);
     res.status(error.statusCode || 500).json({
       message: error.message
     });

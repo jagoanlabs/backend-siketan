@@ -1,5 +1,6 @@
 const router = require('express').Router();
-const auth = require('../../midleware/auth');
+const { PERMISSIONS } = require('../../helpers/roleHelpers');
+const { auth, hasPermission } = require('../../midleware/auth');
 const upload = require('../../midleware/uploader');
 const {
   infoTani,
@@ -14,15 +15,50 @@ const {
   updateInfoTani
 } = require('../controllers/InfoTani');
 
-router.post('/event-tani/add', auth, upload.single('fotoKegiatan'), tambahEventTani);
-router.post('/info-tani/add', auth, upload.single('fotoBerita'), tambahInfoTani);
+router.post(
+  '/info-tani/add',
+  auth,
+  hasPermission(PERMISSIONS.BERITA_PETANI_CREATE),
+  upload.single('fotoBerita'),
+  tambahInfoTani
+);
+router.get('/info-tani/:id', infoTaniById);
 router.get('/info-tani', infoTani);
+router.put(
+  '/info-tani/:id',
+  auth,
+  hasPermission(PERMISSIONS.BERITA_PETANI_EDIT),
+  upload.single('fotoBeritaBaru'),
+  updateInfoTani
+);
+router.delete(
+  '/info-tani/:id',
+  auth,
+  hasPermission(PERMISSIONS.BERITA_PETANI_DELETE),
+  deleteInfoTani
+);
+
+router.post(
+  '/event-tani/add',
+  auth,
+  hasPermission(PERMISSIONS.ACARA_PETANI_CREATE),
+  upload.single('fotoKegiatan'),
+  tambahEventTani
+);
 router.get('/event-tani', eventTani);
 router.get('/event-tani/:id', eventTaniById);
-router.get('/info-tani/:id', infoTaniById);
-router.delete('/info-tani/:id', auth, deleteInfoTani);
-router.delete('/event-tani/:id', auth, deleteEventTani);
-router.put('/info-tani/:id', auth, upload.single('fotoBeritaBaru'), updateInfoTani);
-router.put('/event-tani/:id', auth, upload.single('fotoKegiatanBaru'), updateEventTani);
+router.delete(
+  '/event-tani/:id',
+  auth,
+  hasPermission(PERMISSIONS.ACARA_PETANI_DELETE),
+  deleteEventTani
+);
+router.put(
+  '/event-tani/:id',
+  auth,
+  hasPermission(PERMISSIONS.ACARA_PETANI_EDIT),
+  upload.single('fotoKegiatanBaru'),
+  updateEventTani
+);
 
 module.exports = router;

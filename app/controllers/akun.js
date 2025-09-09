@@ -10,8 +10,10 @@ const {
   dataOperator,
   kecamatan,
   desa,
-  kecamatanBinaan,
-  desaBinaan
+  kecamatanBinaan: KecamatanBinaanModel,
+  desaBinaan: DesaBinaanModel,
+  role: roleModel,
+  permission: permissionModel
 } = require('../models');
 const ApiError = require('../../utils/ApiError');
 const isEmailValid = require('../../utils/emailValidation');
@@ -26,10 +28,30 @@ dotenv.config();
 const login = async (req, res) => {
   try {
     const { email = '', password = '' } = req.body;
-    const user = await tblAkun.findOne({ where: { email } });
+    const user = await tblAkun.findOne({
+      where: { email },
+      include: [
+        {
+          model: roleModel,
+          as: 'role',
+          include: [
+            {
+              model: permissionModel,
+              as: 'permissions',
+              where: { is_active: true },
+              required: false
+            }
+          ]
+        }
+      ]
+    });
     if (!user) throw new ApiError(400, 'Email tidak terdaftar.');
     if (user.peran === 'petani') {
       throw new ApiError(403, 'Anda tidak memiliki akses');
+    }
+    console.log('user', user);
+    if (user.isVerified === false) {
+      throw new ApiError(403, 'Akun belum diverifikasi oleh admin, mohon menunggu');
     }
     if (!bcrypt.compareSync(password, user.password)) {
       throw new ApiError(400, 'Password salah.');
@@ -152,9 +174,25 @@ const loginPetani = async (req, res) => {
       const userPetani = await dataPetani.findOne({ where: { NIK } });
       if (!userPetani) throw new ApiError(400, 'NIK tidak terdaftar.');
 
+      console.log(userPetani.accountID); //ada accound id dan ada accountID di dalam userPetani
       const user = await tblAkun.findOne({
-        where: { accountID: userPetani.accountID }
+        where: { accountID: userPetani.accountID },
+        include: [
+          {
+            model: roleModel,
+            as: 'role',
+            include: [
+              {
+                model: permissionModel,
+                as: 'permissions',
+                where: { is_active: true },
+                required: false
+              }
+            ]
+          }
+        ]
       });
+      console.log(user); //
 
       if (!user.isVerified) {
         throw new ApiError(400, 'Akun belum diverifikasi oleh admin, mohon menunggu');
@@ -191,7 +229,7 @@ const loginPetani = async (req, res) => {
       return res.status(200).json({
         message: 'Login berhasil.',
         token,
-        user: userPetani
+        user: user
       });
     } else {
       throw new ApiError(400, 'NIK tidak boleh kosong.');
@@ -333,6 +371,7 @@ const registerPetani = async (req, res) => {
       });
       urlImg = img.url;
     }
+    const role = await roleModel.findOne({ where: { name: 'petani' } });
     const newUser = await tblAkun.create({
       email: email,
       password: hashedPassword,
@@ -341,7 +380,8 @@ const registerPetani = async (req, res) => {
       pekerjaan: '',
       peran: 'petani',
       foto: urlImg,
-      accountID
+      accountID: accountID,
+      role_id: role.id
     });
 
     let kecamatanData;
@@ -383,7 +423,7 @@ const registerPetani = async (req, res) => {
       password: hashedPassword,
       email: email,
       noTelp: NoWa,
-      accountID,
+      accountID: accountID,
       fk_penyuluhId: penyuluhData.id,
       fk_kelompokId: kelompokData.id,
       kecamatanId: kecamatanId || kecamatanData.id,
@@ -423,12 +463,12 @@ const opsiPenyuluh = async (req, res) => {
         { model: kecamatan, as: 'kecamatanData' },
         { model: desa, as: 'desaData' },
         {
-          model: kecamatanBinaan,
+          model: KecamatanBinaanModel,
           as: 'kecamatanBinaanData',
           include: [{ model: kecamatan }]
         },
         {
-          model: desaBinaan,
+          model: DesaBinaanModel,
           as: 'desaBinaanData',
           include: [{ model: desa }]
         }
@@ -537,7 +577,9 @@ const getProfile = async (req, res) => {
 
     let role;
 
-    if (user.peran === 'petani') {
+    const roleData = await roleModel.findOne({ where: { id: user.role_id } });
+
+    if (user.peran === 'petani' || roleData.name === 'petani') {
       role = await dataPetani.findOne({
         where: { accountID: user.accountID },
         include: [
@@ -554,7 +596,11 @@ const getProfile = async (req, res) => {
           exclude: ['createdAt', 'updatedAt', 'password']
         }
       });
-    } else {
+    } else if (
+      user.peran === 'penyuluh' ||
+      roleData.name === 'penyuluh' ||
+      roleData.name === 'penyuluh_swadaya'
+    ) {
       role = await dataPenyuluh.findOne({
         where: { accountID: user.accountID },
         include: [
@@ -562,7 +608,7 @@ const getProfile = async (req, res) => {
           { model: kecamatan, as: 'kecamatanData' },
           { model: desa, as: 'desaData' },
           {
-            model: kecamatanBinaan,
+            model: KecamatanBinaanModel,
             as: 'kecamatanBinaanData',
             include: [
               {
@@ -571,7 +617,7 @@ const getProfile = async (req, res) => {
             ]
           },
           {
-            model: desaBinaan,
+            model: DesaBinaanModel,
             as: 'desaBinaanData',
             include: [
               {
@@ -586,8 +632,14 @@ const getProfile = async (req, res) => {
           }
         ]
       });
+    } else if (user.peran === 'operator' || roleModel.name === 'operator_poktan') {
+      role = await dataOperator.findOne({
+        where: { accountID: user.accountID },
+        attributes: {
+          exclude: ['createdAt', 'updatedAt', 'password']
+        }
+      });
     }
-
     return res.status(200).json({
       message: 'berhasil',
       userAccount: user,
@@ -602,10 +654,15 @@ const getProfile = async (req, res) => {
 
 const getDetailProfile = async (req, res) => {
   try {
-    const { accountID, peran } = req.user;
+    const { accountID, peran, role } = req.user;
+    // console.log('role user', role);
+    // const roleData = await roleModel.findOne({ where: { id: peran } });
+    console.log('account id is ', accountID);
+    console.log('role is ', role);
+    console.log('peran is ', peran);
     if (accountID) {
       let data;
-      if (peran === 'penyuluh') {
+      if (peran === 'penyuluh' || role.name === 'penyuluh' || role.name === 'penyuluh_swadaya') {
         data = await dataPenyuluh.findOne({
           where: { accountID: accountID },
           include: [
@@ -621,7 +678,7 @@ const getDetailProfile = async (req, res) => {
               as: 'desaData'
             },
             {
-              model: kecamatanBinaan,
+              model: KecamatanBinaanModel,
               as: 'kecamatanBinaanData',
               include: [
                 {
@@ -630,7 +687,7 @@ const getDetailProfile = async (req, res) => {
               ]
             },
             {
-              model: desaBinaan,
+              model: DesaBinaanModel,
               as: 'desaBinaanData',
               include: [
                 {
@@ -640,7 +697,7 @@ const getDetailProfile = async (req, res) => {
             }
           ]
         });
-      } else if (peran === 'petani') {
+      } else if (peran === 'petani' || role.name === 'petani') {
         data = await dataPetani.findOne({
           where: { accountID: accountID },
           include: [
@@ -669,15 +726,18 @@ const getDetailProfile = async (req, res) => {
             }
           ]
         });
-      } else {
+      } else if (peran === 'operator poktan' || role.name === 'operator_poktan') {
+        //
         data = await dataOperator.findOne({
-          where: { accountID: accountID },
+          where: { accountID: accountID }, //mengapa selalu undifined walaupun accountID nya cocok?
           include: [
             {
               model: tblAkun
             }
           ]
         });
+      } else {
+        data = await tblAkun.findOne({ where: { accountID: accountID } });
       }
       res.status(200).json({
         message: 'berhasil',

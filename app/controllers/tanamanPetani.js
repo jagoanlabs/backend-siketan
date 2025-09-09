@@ -84,7 +84,7 @@ const getTopTanamanPetani = async (req, res) => {
     const limitFilter = Number(limit) || 10;
     const pageFilter = Number(page) || 1;
 
-    const whereQuery = { createdAt: { [Op.gte]: moment().subtract(30, 'days').toDate() } };
+    const whereQuery = { createdAt: { [Op.gte]: moment().subtract(30, 'days').toDate() } }; //filter waktu 30 hari terakhir
 
     const query = {
       limit: 30,

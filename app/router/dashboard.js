@@ -1,5 +1,8 @@
 const router = require('express').Router();
 const { getDashboardIndexData } = require('../controllers/dashboard');
+const auth = require('../../midleware/auth');
+const hasPermission = require('../../midleware/hasPermission');
+const { PERMISSIONS } = require('../../helpers/roleHelpers');
 
-router.get('/', getDashboardIndexData);
+router.get('/', auth, hasPermission(PERMISSIONS.DASHBOARD_INDEX), getDashboardIndexData);
 module.exports = router;

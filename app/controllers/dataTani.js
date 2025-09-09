@@ -7,7 +7,8 @@ const {
   dataPetani,
   tbl_akun,
   kecamatan,
-  desa
+  desa,
+  role: roleModel
 } = require('../models');
 const { Op } = require('sequelize');
 const ApiError = require('../../utils/ApiError');
@@ -149,6 +150,7 @@ const tambahDaftarTani = async (req, res) => {
       img.url;
       urlImg = img.url;
     }
+    const role = await roleModel.findOne({ where: { name: 'petani' } });
     const newAccount = await tbl_akun.create({
       email,
       password: hashedPassword,
@@ -157,7 +159,8 @@ const tambahDaftarTani = async (req, res) => {
       pekerjaan: '',
       peran: 'petani',
       foto: urlImg,
-      accountID: accountID
+      accountID: accountID,
+      role_id: role.id
     });
     let kecamatanData;
     if (inputKecamatan && !kecamatanId) {
