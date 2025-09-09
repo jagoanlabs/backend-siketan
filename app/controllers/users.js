@@ -5,9 +5,9 @@ const {
   tbl_akun,
   dataPetani,
   dataPenyuluh,
-  dataOperator,
   kecamatan,
-  desa
+  desa,
+  dataOperator
 } = require('../models');
 const { Op } = require('sequelize');
 
@@ -59,7 +59,7 @@ const userVerify = async (req, res) => {
     const limitFilter = Number(limit) || 10;
 
     // Sorting logic
-    let orderFilter = [['id', 'ASC']];
+    let orderFilter = [['id', 'ASC']]; // default
     if (sort === 'verified_desc') {
       orderFilter = [
         ['isVerified', 'DESC'],
@@ -121,7 +121,7 @@ const userVerify = async (req, res) => {
       order: orderFilter,
       limit: limitFilter,
       offset: (pageFilter - 1) * limitFilter,
-      distinct: true
+      distinct: true // supaya count benar kalau ada include
     };
 
     const data = await tbl_akun.findAll(query);
@@ -160,20 +160,25 @@ const userVerify = async (req, res) => {
       distinct: true
     });
 
+    // *** PERUBAHAN: Jangan throw error jika data kosong, cukup kirim response kosong ***
+    // if (data.length === 0) {
+    //   throw new ApiError(404, 'Data tidak ditemukan');
+    // }
+
     res.status(200).json({
-      message: data.length > 0 ? 'Data berhasil diambil' : 'Tidak ada data yang sesuai kriteria',
+      message: 'Data berhasil diambil',
       data,
       total,
       currentPages: pageFilter,
       limit: limitFilter,
       maxPages: Math.ceil(total / limitFilter),
-      from: total > 0 ? (pageFilter - 1) * limitFilter + 1 : 0,
-      to: total > 0 ? (pageFilter - 1) * limitFilter + data.length : 0
+      from: (pageFilter - 1) * limitFilter + 1,
+      to: (pageFilter - 1) * limitFilter + data.length
     });
   } catch (error) {
     console.error('Error in userVerify:', error);
     res.status(error.statusCode || 500).json({
-      message: error.message || 'Terjadi kesalahan pada server'
+      message: error.message
     });
   }
 };

@@ -1,6 +1,6 @@
 const router = require('express').Router();
-const { PERMISSIONS } = require('../../helpers/roleHelpers');
-const { auth, hasPermission } = require('../../midleware/auth');
+const auth = require('../../midleware/auth');
+const hasPermission = require('../../midleware/hasPermission');
 const upload = require('../../midleware/uploader');
 const {
   tambahDataTanaman,
@@ -12,6 +12,7 @@ const {
   fixKategori,
   fixKomoditas
 } = require('../controllers/dataTanaman');
+const { PERMISSIONS } = require('../../helpers/roleHelpers');
 
 router.post('/', auth, hasPermission(PERMISSIONS.STATISTIC_CREATE), tambahDataTanaman);
 router.get('/', auth, hasPermission(PERMISSIONS.STATISTIC_INDEX), getAllDataTanaman);

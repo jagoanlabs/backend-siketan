@@ -140,16 +140,7 @@ const productPetani = async (req, res) => {
           attributes: {
             exclude: ['password']
           },
-          include: [
-            {
-              model: dataPetani,
-              as: 'petani' // 👈 Tambahkan alias ini
-            },
-            {
-              model: dataPenyuluh,
-              as: 'penyuluh' // 👈 Tambahkan alias ini juga
-            }
-          ]
+          include: [{ model: dataPetani }, { model: dataPenyuluh }]
         }
       ],
       where: {},

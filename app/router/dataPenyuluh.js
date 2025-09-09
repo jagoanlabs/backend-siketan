@@ -118,7 +118,7 @@ router.post(
 );
 
 router.get('/opsi-penyuluh', opsiPenyuluh);
-router.get('/kelompok-all', getKelompok);
+router.get('/kelompok-all', auth, getKelompok);
 router.get('/daftar-petani/:id', auth, getPetani);
 router.put('/penyuluh/fix/kecamatan', auth, changeKecamatanToId);
 router.put('/penyuluh/fix/desa', auth, changeDesaToId);
