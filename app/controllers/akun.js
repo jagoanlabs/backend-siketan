@@ -463,12 +463,12 @@ const opsiPenyuluh = async (req, res) => {
         { model: kecamatan, as: 'kecamatanData' },
         { model: desa, as: 'desaData' },
         {
-          model: kecamatanBinaan,
+          model: KecamatanBinaanModel,
           as: 'kecamatanBinaanData',
           include: [{ model: kecamatan }]
         },
         {
-          model: desaBinaan,
+          model: DesaBinaanModel,
           as: 'desaBinaanData',
           include: [{ model: desa }]
         }
@@ -608,7 +608,7 @@ const getProfile = async (req, res) => {
           { model: kecamatan, as: 'kecamatanData' },
           { model: desa, as: 'desaData' },
           {
-            model: kecamatanBinaan,
+            model: KecamatanBinaanModel,
             as: 'kecamatanBinaanData',
             include: [
               {
@@ -617,7 +617,7 @@ const getProfile = async (req, res) => {
             ]
           },
           {
-            model: desaBinaan,
+            model: DesaBinaanModel,
             as: 'desaBinaanData',
             include: [
               {
@@ -678,7 +678,7 @@ const getDetailProfile = async (req, res) => {
               as: 'desaData'
             },
             {
-              model: kecamatanBinaan,
+              model: KecamatanBinaanModel,
               as: 'kecamatanBinaanData',
               include: [
                 {
@@ -687,7 +687,7 @@ const getDetailProfile = async (req, res) => {
               ]
             },
             {
-              model: desaBinaan,
+              model: DesaBinaanModel,
               as: 'desaBinaanData',
               include: [
                 {
@@ -727,7 +727,7 @@ const getDetailProfile = async (req, res) => {
           ]
         });
       } else if (peran === 'operator poktan' || role.name === 'operator_poktan') {
-        // 
+        //
         data = await dataOperator.findOne({
           where: { accountID: accountID }, //mengapa selalu undifined walaupun accountID nya cocok?
           include: [
@@ -872,11 +872,11 @@ const updateDetailProfile = async (req, res) => {
 
       newDataPenyuluh && accountUpdate
         ? res.status(200).json({
-          message: 'Berhasil Mengubah Profil'
-        })
+            message: 'Berhasil Mengubah Profil'
+          })
         : res.status(400).json({
-          message: 'Gagal Mengubah Profil'
-        });
+            message: 'Gagal Mengubah Profil'
+          });
     } else if (peran === 'petani') {
       const {
         nik,
@@ -991,11 +991,11 @@ const updateDetailProfile = async (req, res) => {
       );
       petaniUpdate && accountUpdate
         ? res.status(200).json({
-          message: 'Berhasil Mengubah Profil'
-        })
+            message: 'Berhasil Mengubah Profil'
+          })
         : res.status(400).json({
-          message: 'Gagal Mengubah Profil'
-        });
+            message: 'Gagal Mengubah Profil'
+          });
     } else {
       const { nik, email, whatsapp, alamat, desa, nama, kecamatan, baru } = req.body;
       const data = await dataOperator.findOne({
@@ -1083,8 +1083,8 @@ const getPeran = async (req, res) => {
     // filter pencarian
     const where = search
       ? {
-        [Op.or]: [{ nama: { [Op.like]: `%${search}%` } }, { email: { [Op.like]: `%${search}%` } }]
-      }
+          [Op.or]: [{ nama: { [Op.like]: `%${search}%` } }, { email: { [Op.like]: `%${search}%` } }]
+        }
       : {};
 
     const query = {

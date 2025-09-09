@@ -6,7 +6,8 @@ const {
   dataPetani,
   dataPenyuluh,
   kecamatan,
-  desa
+  desa,
+  dataOperator
 } = require('../models');
 const { Op } = require('sequelize');
 
