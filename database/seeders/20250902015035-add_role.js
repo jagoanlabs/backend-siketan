@@ -37,8 +37,8 @@ module.exports = {
         },
         {
           name: 'penyuluh',
-          display_name: 'Penyuluh Pusat',
-          description: 'Penyuluh Pusat ',
+          display_name: 'Penyuluh',
+          description: 'Penyuluh ',
           is_active: true,
           createdAt: now,
           updatedAt: now

@@ -49,7 +49,7 @@ module.exports = {
       {
         peranValue: 'penyuluh',
         roleName: 'penyuluh',
-        description: 'Penyuluh Pertanian'
+        description: 'Penyuluh'
       },
       {
         peranValue: 'penyuluh swadaya',
