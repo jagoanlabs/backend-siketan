@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { auth, hasPermission } = require('../../midleware/auth');
+const { auth, hasPermission, isOwner } = require('../../midleware/auth');
 const upload = require('../../midleware/uploader');
 const {
   login,
@@ -33,7 +33,7 @@ router.get('/populate-penyuluh', opsiPenyuluh);
 router.get('/populate-poktan', opsiPoktan);
 router.get('/profile', getProfile);
 router.get('/detailprofile', auth, getDetailProfile); //get detail profile
-router.post('/updateprofile', auth, upload.single('foto'), updateDetailProfile); //update detail profile
+router.post('/updateprofile', auth, isOwner, upload.single('foto'), updateDetailProfile); //update detail profile
 router.get('/verify', getUserNotVerify);
 // router.get('/verify/:id', verifikasi);
 router.get('/peran/meta', auth, hasPermission(PERMISSIONS.UBAH_HAK_AKSES_INDEX), getMetaUserRole); //get meta role user count all role

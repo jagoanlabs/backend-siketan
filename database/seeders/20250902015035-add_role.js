@@ -37,8 +37,16 @@ module.exports = {
         },
         {
           name: 'penyuluh',
-          display_name: 'Penyuluh Pertanian',
-          description: 'Penyuluh Pertanian ',
+          display_name: 'Penyuluh',
+          description: 'Penyuluh ',
+          is_active: true,
+          createdAt: now,
+          updatedAt: now
+        },
+        {
+          name: 'operator_admin',
+          display_name: 'Operator Admin',
+          description: 'Memiliki akses dibawah operator super admin',
           is_active: true,
           createdAt: now,
           updatedAt: now

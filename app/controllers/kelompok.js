@@ -45,7 +45,11 @@ const getAllKelompok = async (req, res) => {
   const { page, limit, search } = req.query;
 
   try {
-    if (peran !== 'operator super admin' && peran !== 'operator admin') {
+    if (
+      peran !== 'operator super admin' &&
+      peran !== 'operator admin' &&
+      peran !== 'operator poktan'
+    ) {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     } else {
       const limitFilter = Number(limit) || 10;

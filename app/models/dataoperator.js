@@ -8,8 +8,8 @@ module.exports = (sequelize, DataTypes) => {
       // this.belongsTo(models.kelompok, { foreignKey: "fk_kelompokID" });
       dataOperator.belongsTo(models.tbl_akun, {
         foreignKey: 'accountID',
-        targetKey: 'accountID'
-        // as: "akun",
+        targetKey: 'accountID',
+        as: 'akun'
       });
     }
   }
