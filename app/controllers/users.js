@@ -50,7 +50,7 @@ const userVerify = async (req, res) => {
   const { peran: userRole } = req.user || {};
 
   try {
-    // Perbaiki logika role checking - gunakan helper yang sudah dibuat
+    // Restriksi role
     if (!['operator super admin'].includes(userRole)) {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     }
@@ -72,6 +72,15 @@ const userVerify = async (req, res) => {
       ];
     }
 
+    // Allowed roles (tinggal tambah di sini kalau ada role baru)
+    const allowedRoles = [
+      'petani',
+      'penyuluh',
+      'penyuluh_swadaya',
+      'penyuluh_reguler',
+      'operator poktan'
+    ];
+
     // Search condition
     const searchCondition = search
       ? {
@@ -79,41 +88,41 @@ const userVerify = async (req, res) => {
             { nama: { [Op.like]: `%${search}%` } },
             { no_wa: { [Op.like]: `%${search}%` } },
             { email: { [Op.like]: `%${search}%` } },
-            { '$petani.NIK$': { [Op.like]: `%${search}%` } }, // Perbaiki reference
-            { '$penyuluh.NIK$': { [Op.like]: `%${search}%` } }, // Perbaiki reference
-            { '$operator.NIK$': { [Op.like]: `%${search}%` } } // Perbaiki reference
+            { '$petani.NIK$': { [Op.like]: `%${search}%` } },
+            { '$penyuluh.NIK$': { [Op.like]: `%${search}%` } },
+            { '$operator.NIK$': { [Op.like]: `%${search}%` } }
           ]
         }
       : {};
 
-    // Query data - Tambahkan alias 'as' dan perbaiki reference
+    // Query data
     const query = {
       include: [
         {
           model: dataPetani,
-          as: 'petani', // 👈 Tambahkan alias
+          as: 'petani',
           required: false,
           attributes: ['NIK']
         },
         {
           model: dataPenyuluh,
-          as: 'penyuluh', // 👈 Tambahkan alias
+          as: 'penyuluh',
           required: false,
           attributes: ['NIK']
         },
         {
           model: dataOperator,
-          as: 'operator', // 👈 Tambahkan alias
+          as: 'operator',
           required: false,
           attributes: ['NIK']
         }
       ],
       where: {
-        peran: { [Op.in]: ['petani', 'penyuluh', 'operator poktan'] },
+        peran: { [Op.in]: allowedRoles },
         [Op.or]: [
-          { '$petani.id$': { [Op.not]: null } }, // Perbaiki reference sesuai alias
-          { '$penyuluh.id$': { [Op.not]: null } }, // Perbaiki reference sesuai alias
-          { '$operator.id$': { [Op.not]: null } } // Perbaiki reference sesuai alias
+          { '$petani.id$': { [Op.not]: null } },
+          { '$penyuluh.id$': { [Op.not]: null } },
+          { '$operator.id$': { [Op.not]: null } }
         ],
         ...searchCondition
       },
@@ -126,30 +135,30 @@ const userVerify = async (req, res) => {
 
     const data = await tbl_akun.findAll(query);
 
-    // Query untuk count total - juga perlu alias
+    // Query untuk count total
     const total = await tbl_akun.count({
       include: [
         {
           model: dataPetani,
-          as: 'petani', // 👈 Tambahkan alias
+          as: 'petani',
           required: false,
           attributes: []
         },
         {
           model: dataPenyuluh,
-          as: 'penyuluh', // 👈 Tambahkan alias
+          as: 'penyuluh',
           required: false,
           attributes: []
         },
         {
           model: dataOperator,
-          as: 'operator', // 👈 Tambahkan alias
+          as: 'operator',
           required: false,
           attributes: []
         }
       ],
       where: {
-        peran: { [Op.in]: ['petani', 'penyuluh', 'operator poktan'] },
+        peran: { [Op.in]: allowedRoles },
         [Op.or]: [
           { '$petani.id$': { [Op.not]: null } },
           { '$penyuluh.id$': { [Op.not]: null } },
