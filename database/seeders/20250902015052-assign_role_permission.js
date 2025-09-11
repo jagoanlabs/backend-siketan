@@ -107,20 +107,25 @@ module.exports = {
         // Tanaman Petani -> create, view, edit + export
         'tanaman_petani_index',
         'tanaman_petani_create',
+        'tanaman_petani_detail',
         'tanaman_petani_edit',
 
         // Daftar Petani -> create, view, edit + export
         'data_petani_index',
         'data_petani_create',
         'data_petani_edit',
+        'data_petani_detail',
 
         // Informasi Petani (Berita dan Acara) -> create, view, edit + export
         'berita_petani_index',
         'berita_petani_create',
         'berita_petani_edit',
+        'berita_petani_detail',
+
         'acara_petani_index',
         'acara_petani_create',
         'acara_petani_edit',
+        'acara_petani_detail',
 
         // Toko Pertanian -> CRUD + export
         'toko_petani_index',
@@ -134,6 +139,7 @@ module.exports = {
         'data_penyuluh_create',
         'data_penyuluh_detail',
         'data_penyuluh_edit',
+        'data_penyuluh_delete',
         // Note: No delete for data_penyuluh by default, only import
 
         // Jurnal Penyuluh -> CRUD + export
@@ -153,14 +159,13 @@ module.exports = {
 
         // Kelompok Tani -> semua kecuali delete + export
         'data_kelompok_index',
-        'data_kelompok_edit',
-
+        'data_kelompok_edit'
         // Data Operator (added based on seeder)
-        'data_operator_index',
-        'data_operator_create',
-        'data_operator_detail',
-        'data_operator_edit',
-        'data_operator_delete'
+        // 'data_operator_index',
+        // 'data_operator_create',
+        // 'data_operator_detail',
+        // 'data_operator_edit',
+        // 'data_operator_delete'
       ];
 
       // Auto-add export permissions
@@ -178,30 +183,35 @@ module.exports = {
       'statistic_index',
       'statistic_create',
       'statistic_detail',
-      'statistic_realisasi',
+      'statistic_edit',
 
       // Tanaman Petani -> create, view, edit + export
       'tanaman_petani_index',
       'tanaman_petani_create',
       'tanaman_petani_edit',
+      'tanaman_petani_detail',
 
       // Daftar Petani -> create, view, edit + export
       'data_petani_index',
       'data_petani_create',
       'data_petani_edit',
+      'data_petani_detail',
 
       // Informasi Petani (Berita dan Acara) -> create, view, edit + export
       'berita_petani_index',
       'berita_petani_create',
       'berita_petani_edit',
+      'berita_petani_detail',
       'acara_petani_index',
       'acara_petani_create',
       'acara_petani_edit',
+      'acara_petani_detail',
 
       // Toko Pertanian -> create, view, edit + export
       'toko_petani_index',
       'toko_petani_create',
       'toko_petani_edit',
+      'toko_petani_detail',
 
       // Data Penyuluh -> no access (removed)
 
@@ -209,6 +219,7 @@ module.exports = {
       'jurnal_penyuluh_index',
       'jurnal_penyuluh_create',
       'jurnal_penyuluh_edit',
+      'jurnal_penyuluh_detail',
 
       // Log Aktivitas -> no access (removed)
       // Data Sampah -> no access (removed)
