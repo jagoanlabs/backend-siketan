@@ -1,4 +1,4 @@
-const { dataOperator, tbl_akun, role } = require('../models');
+const { dataOperator, tbl_akun, role: RoleModel } = require('../models');
 const ApiError = require('../../utils/ApiError');
 const imageKit = require('../../midleware/imageKit');
 const dotenv = require('dotenv');
@@ -48,11 +48,15 @@ const tambahDataOperator = async (req, res) => {
         img.url;
         urlImg = img.url;
       }
-      const role = await role.findOne({
+      const peranWithUnderline = peran.toLowerCase().replace(/\s+/g, '_');
+      console.log('peran', peran);
+      console.log('peranWithUnderline', peranWithUnderline);
+      const role = await RoleModel.findOne({
         where: {
-          name: peran
+          name: peranWithUnderline
         }
       });
+      console.log('role dari peran', role);
       const newAccount = await tbl_akun.create({
         email,
         password: hashedPassword,
@@ -129,7 +133,7 @@ const getDaftarOperator = async (req, res) => {
             attributes: ['peran'],
             include: [
               {
-                model: role,
+                model: RoleModel,
                 as: 'role'
               }
             ]
@@ -215,7 +219,7 @@ const getOperatorDetail = async (req, res) => {
             as: 'akun',
             include: [
               {
-                model: role,
+                model: RoleModel,
                 as: 'role'
               }
             ]
@@ -284,9 +288,10 @@ const updateOperatorDetail = async (req, res) => {
           urlImg = img.url;
         }
         const hashedPassword = bcrypt.hashSync(password, 10);
-        const role = await role.findOne({
+        const peranWithUnderline = peran.toLowerCase().replace(/\s+/g, '_');
+        const role = await RoleModel.findOne({
           where: {
-            name: peran
+            name: peranWithUnderline
           }
         });
         const updateData = await dataOperator.update(
@@ -353,7 +358,7 @@ const uploadDataOperator = async (req, res) => {
     const dataAkun = [];
 
     // ambil semua role sekali biar ga query berkali-kali
-    const roles = await role.findAll();
+    const roles = await RoleModel.findAll();
     const roleMap = roles.reduce((acc, r) => {
       acc[r.name.toLowerCase()] = r.id;
       return acc;
