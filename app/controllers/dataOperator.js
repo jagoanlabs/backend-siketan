@@ -5,8 +5,7 @@ const dotenv = require('dotenv');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const ExcelJS = require('exceljs');
-const { QueryTypes, Op } = require('sequelize');
-const { sequelize } = require('../models'); // Assuming you have your Sequelize instance initialized and exported
+const { Op } = require('sequelize');
 const { postActivity } = require('./logActivity');
 
 dotenv.config();
@@ -49,6 +48,11 @@ const tambahDataOperator = async (req, res) => {
         img.url;
         urlImg = img.url;
       }
+      const role = await role.findOne({
+        where: {
+          name: peran
+        }
+      });
       const newAccount = await tbl_akun.create({
         email,
         password: hashedPassword,
@@ -57,7 +61,8 @@ const tambahDataOperator = async (req, res) => {
         pekerjaan: '',
         peran,
         foto: urlImg,
-        accountID: accountID
+        accountID: accountID,
+        role_id: role.id
       });
       const data = await dataOperator.create({
         nik,
@@ -279,6 +284,11 @@ const updateOperatorDetail = async (req, res) => {
           urlImg = img.url;
         }
         const hashedPassword = bcrypt.hashSync(password, 10);
+        const role = await role.findOne({
+          where: {
+            name: peran
+          }
+        });
         const updateData = await dataOperator.update(
           {
             nik,
@@ -304,7 +314,8 @@ const updateOperatorDetail = async (req, res) => {
             nama,
             pekerjaan: '',
             peran: peran,
-            foto: urlImg
+            foto: urlImg,
+            role_id: role.id
           },
           {
             where: { accountID: data.accountID }
@@ -329,53 +340,73 @@ const uploadDataOperator = async (req, res) => {
   try {
     if (peran !== 'operator super admin') {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
-    } else {
-      // const { file } = req;
-      // if (!file) throw new ApiError(400, "File tidak ditemukan.");
-      const { file } = req;
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.load(file.buffer);
-      const worksheet = workbook.getWorksheet(1);
-      const dataOpt = [];
-      const dataAkun = [];
-      worksheet.eachRow((row, rowNumber) => {
-        if (rowNumber !== 1) {
-          const accountID = crypto.randomUUID();
-          const password = row.getCell(7).value.toString();
-          const hashedPassword = bcrypt.hashSync(password, 10);
-          const urlImg =
-            'https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/images/bg-7.png';
-
-          dataOpt.push({
-            nik: row.values[1],
-            nkk: row.values[2],
-            nama: row.values[3],
-            email: row.values[4],
-            noTelp: row.values[5],
-            alamat: row.values[6],
-            password: hashedPassword,
-            peran: row.values[8],
-            accountID: accountID,
-            foto: urlImg
-          });
-          dataAkun.push({
-            email: row.values[4],
-            password: hashedPassword,
-            no_wa: row.values[5],
-            nama: row.values[3],
-            pekerjaan: '',
-            peran: row.values[8],
-            foto: urlImg,
-            accountID: accountID
-          });
-        }
-      });
-      await dataOperator.bulkCreate(dataOpt);
-      await tbl_akun.bulkCreate(dataAkun);
-      res.status(200).json({
-        message: 'Data operator berhasil diupload'
-      });
     }
+
+    const { file } = req;
+    if (!file) throw new ApiError(400, 'File tidak ditemukan.');
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(file.buffer);
+    const worksheet = workbook.getWorksheet(1);
+
+    const dataOpt = [];
+    const dataAkun = [];
+
+    // ambil semua role sekali biar ga query berkali-kali
+    const roles = await role.findAll();
+    const roleMap = roles.reduce((acc, r) => {
+      acc[r.name.toLowerCase()] = r.id;
+      return acc;
+    }, {});
+
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber !== 1) {
+        const accountID = crypto.randomUUID();
+        const password = row.getCell(7).value.toString();
+        const hashedPassword = bcrypt.hashSync(password, 10);
+        const urlImg =
+          'https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/images/bg-7.png';
+
+        const roleName = row.values[8]?.toString().toLowerCase();
+        const roleId = roleMap[roleName];
+
+        if (!roleId) {
+          throw new ApiError(400, `Role "${row.values[8]}" tidak ditemukan di database`);
+        }
+
+        dataOpt.push({
+          nik: row.values[1],
+          nkk: row.values[2],
+          nama: row.values[3],
+          email: row.values[4],
+          noTelp: row.values[5],
+          alamat: row.values[6],
+          password: hashedPassword,
+          peran: row.values[8], // masih simpan string kalau mau
+          accountID,
+          foto: urlImg
+        });
+
+        dataAkun.push({
+          email: row.values[4],
+          password: hashedPassword,
+          no_wa: row.values[5],
+          nama: row.values[3],
+          pekerjaan: '',
+          peran: row.values[8], // simpan string (opsional)
+          role_id: roleId, // foreign key ke tabel role
+          foto: urlImg,
+          accountID
+        });
+      }
+    });
+
+    await dataOperator.bulkCreate(dataOpt);
+    await tbl_akun.bulkCreate(dataAkun);
+
+    res.status(200).json({
+      message: 'Data operator berhasil diupload'
+    });
   } catch (error) {
     res.status(error.statusCode || 500).json({
       message: error.message
