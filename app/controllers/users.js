@@ -77,7 +77,7 @@ const userVerify = async (req, res) => {
       'petani',
       'penyuluh',
       'penyuluh_swadaya',
-      'penyuluh_reguler',
+      'operator admin',
       'operator poktan'
     ];
 
