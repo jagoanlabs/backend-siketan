@@ -965,7 +965,8 @@ const getDetailProfile = async (req, res) => {
                   model: desa
                 }
               ]
-            }
+            },
+            { model: kelompok, as: 'kelompoks' }
           ]
         });
       } else if (peran === 'petani' || role.name === 'petani') {
@@ -998,7 +999,7 @@ const getDetailProfile = async (req, res) => {
           ]
         });
       } else if (peran === 'operator poktan' || role.name === 'operator_poktan') {
-        // 
+        //
         data = await dataOperator.findOne({
           where: { accountID: accountID }, //mengapa selalu undifined walaupun accountID nya cocok?
           include: [
@@ -1024,10 +1025,10 @@ const getDetailProfile = async (req, res) => {
 };
 
 const updateDetailProfile = async (req, res) => {
-  const { accountID, peran } = req.user;
+  const { accountID, peran, role } = req.user;
 
   try {
-    if (peran === 'penyuluh') {
+    if (peran === 'penyuluh' || role.name === 'penyuluh' || role.name === 'penyuluh_swadaya') {
       const {
         nik,
         email,
@@ -1143,12 +1144,12 @@ const updateDetailProfile = async (req, res) => {
 
       newDataPenyuluh && accountUpdate
         ? res.status(200).json({
-          message: 'Berhasil Mengubah Profil'
-        })
+            message: 'Berhasil Mengubah Profil'
+          })
         : res.status(400).json({
-          message: 'Gagal Mengubah Profil'
-        });
-    } else if (peran === 'petani') {
+            message: 'Gagal Mengubah Profil'
+          });
+    } else if (peran === 'petani' || role.name === 'petani') {
       const {
         nik,
         nokk,
@@ -1262,12 +1263,12 @@ const updateDetailProfile = async (req, res) => {
       );
       petaniUpdate && accountUpdate
         ? res.status(200).json({
-          message: 'Berhasil Mengubah Profil'
-        })
+            message: 'Berhasil Mengubah Profil'
+          })
         : res.status(400).json({
-          message: 'Gagal Mengubah Profil'
-        });
-    } else {
+            message: 'Gagal Mengubah Profil'
+          });
+    } else if (peran === 'operator poktan' || role.name === 'operator_poktan') {
       const { nik, email, whatsapp, alamat, desa, nama, kecamatan, baru } = req.body;
       const data = await dataOperator.findOne({
         where: {
@@ -1336,6 +1337,8 @@ const updateDetailProfile = async (req, res) => {
         operatorUpdate,
         accountUpdate
       });
+    } else {
+      const { peran, role } = req.body;
     }
   } catch (error) {
     console.error(error); // Log the error for debugging
@@ -1354,8 +1357,8 @@ const getPeran = async (req, res) => {
     // filter pencarian
     const where = search
       ? {
-        [Op.or]: [{ nama: { [Op.like]: `%${search}%` } }, { email: { [Op.like]: `%${search}%` } }]
-      }
+          [Op.or]: [{ nama: { [Op.like]: `%${search}%` } }, { email: { [Op.like]: `%${search}%` } }]
+        }
       : {};
 
     const query = {

@@ -32,6 +32,11 @@ module.exports = {
         description: 'Operator Super Admin'
       },
       {
+        peranValue: 'operator admin',
+        roleName: 'operator_admin',
+        description: 'Operator Admin'
+      },
+      {
         peranValue: 'operator poktan',
         roleName: 'operator_poktan',
         description: 'Operator Poktan'
@@ -44,7 +49,7 @@ module.exports = {
       {
         peranValue: 'penyuluh',
         roleName: 'penyuluh',
-        description: 'Penyuluh Pertanian'
+        description: 'Penyuluh'
       },
       {
         peranValue: 'penyuluh swadaya',
@@ -87,6 +92,7 @@ module.exports = {
     // Handle case variations and extra spaces
     const edgeCases = [
       { pattern: '%operator%super%admin%', roleName: 'operator_super_admin' },
+      { pattern: '%operator%admin%', roleName: 'operator_admin' },
       { pattern: '%operator%poktan%', roleName: 'operator_poktan' },
       { pattern: '%penyuluh%swadaya%', roleName: 'penyuluh_swadaya' }
     ];

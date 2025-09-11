@@ -1,11 +1,11 @@
-const { dataOperator, tbl_akun } = require('../models');
+const { dataOperator, tbl_akun, role } = require('../models');
 const ApiError = require('../../utils/ApiError');
 const imageKit = require('../../midleware/imageKit');
 const dotenv = require('dotenv');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const ExcelJS = require('exceljs');
-const { QueryTypes } = require('sequelize');
+const { QueryTypes, Op } = require('sequelize');
 const { sequelize } = require('../models'); // Assuming you have your Sequelize instance initialized and exported
 const { postActivity } = require('./logActivity');
 
@@ -94,7 +94,8 @@ const tambahDataOperator = async (req, res) => {
 
 const getDaftarOperator = async (req, res) => {
   const { peran } = req.user || {};
-  const { page, limit } = req.query;
+  const { page, limit, search } = req.query;
+
   try {
     if (peran !== 'operator super admin' && peran !== 'operator admin') {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
@@ -102,21 +103,49 @@ const getDaftarOperator = async (req, res) => {
       const limitFilter = Number(limit) || 10;
       const pageFilter = Number(page) || 1;
 
+      // filter search
+      let whereClause = {};
+      if (search) {
+        whereClause = {
+          [Op.or]: [
+            { nama: { [Op.like]: `%${search}%` } },
+            { nik: { [Op.like]: `%${search}%` } },
+            { email: { [Op.like]: `%${search}%` } }
+          ]
+        };
+      }
+
       const query = {
+        where: whereClause,
+        include: [
+          {
+            model: tbl_akun, // pastikan sudah di-import
+            as: 'akun',
+            attributes: ['peran'],
+            include: [
+              {
+                model: role,
+                as: 'role'
+              }
+            ]
+          }
+        ],
         limit: limitFilter,
         offset: (pageFilter - 1) * limitFilter
       };
-      const data = await dataOperator.findAll({ ...query });
-      const total = await dataOperator.count({ ...query });
+
+      const data = await dataOperator.findAll(query);
+      const total = await dataOperator.count({ where: whereClause });
+
       res.status(200).json({
         message: 'Data Operator Berhasil Diperoleh',
         data,
         total,
-        currentPages: page,
-        limit: Number(limit),
-        maxPages: Math.ceil(total / (Number(limit) || 10)),
-        from: Number(page) ? (Number(page) - 1) * Number(limit) + 1 : 1,
-        to: Number(page) ? (Number(page) - 1) * Number(limit) + data.length : data.length
+        currentPages: pageFilter,
+        limit: limitFilter,
+        maxPages: Math.ceil(total / limitFilter),
+        from: (pageFilter - 1) * limitFilter + 1,
+        to: (pageFilter - 1) * limitFilter + data.length
       });
     }
   } catch (error) {
@@ -171,23 +200,23 @@ const getOperatorDetail = async (req, res) => {
     if (peran !== 'operator super admin' && peran !== 'operator admin') {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     } else {
-      const data = await sequelize.query(
-        `SELECT do.*, ta.peran
-                 FROM dataOperators do
-                 LEFT JOIN tbl_akun ta ON do.accountID = ta.accountID
-                 WHERE do.id = :id
-                 LIMIT 1`,
-        {
-          replacements: { id },
-          type: QueryTypes.SELECT
-        }
-      );
-
-      // const data =await dataOperator.findOne({
-      //     where: {
-      //         id,
-      //     },
-      // });
+      const data = await dataOperator.findOne({
+        where: {
+          id
+        },
+        include: [
+          {
+            model: tbl_akun,
+            as: 'akun',
+            include: [
+              {
+                model: role,
+                as: 'role'
+              }
+            ]
+          }
+        ]
+      });
       if (!data) {
         throw new ApiError(404, 'Data operator tidak ditemukan');
       } else {
