@@ -789,8 +789,8 @@ const getUserNotVerify = async (req, res) => {
         offset: (pageFilter - 1) * limitFilter
       };
 
-      const data = await dataPerson.findAll(query);
-      const total = await dataPerson.count({ where: { verify: false } });
+      const data = await tblAkun.findAll(query);
+      const total = await tblAkun.count({ where: { verify: false } });
 
       res.status(200).json({
         message: 'Data User Berhasil Diperoleh',
