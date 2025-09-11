@@ -246,12 +246,12 @@ const isOwner = (ownerField = 'accountID') => {
 // ========== PREDEFINED MIDDLEWARE COMBINATIONS ==========
 
 // Admin level access
-const requireAdmin = [auth, hasAnyRole([ROLES.SUPER_ADMIN, ROLES.OPERATOR_SUPER_ADMIN])];
+const requireAdmin = [auth, hasAnyRole([ROLES.OPERATOR_ADMIN, ROLES.OPERATOR_SUPER_ADMIN])];
 
 // Operator level access
 const requireOperator = [
   auth,
-  hasAnyRole([ROLES.SUPER_ADMIN, ROLES.OPERATOR_SUPER_ADMIN, ROLES.OPERATOR_POKTAN])
+  hasAnyRole([ROLES.OPERATOR_ADMIN, ROLES.OPERATOR_SUPER_ADMIN, ROLES.OPERATOR_POKTAN])
 ];
 
 // Any penyuluh access
@@ -270,7 +270,7 @@ const requirePetani = [auth, hasRole(ROLES.PETANI)];
 const requireManager = [
   auth,
   hasAnyRole([
-    ROLES.SUPER_ADMIN,
+    ROLES.OPERATOR_ADMIN,
     ROLES.OPERATOR_SUPER_ADMIN,
     ROLES.OPERATOR_POKTAN,
     ROLES.PENYULUH_REGULER
@@ -281,7 +281,7 @@ const requireManager = [
 const requireDataCreator = [
   auth,
   hasAnyRole([
-    ROLES.SUPER_ADMIN,
+    ROLES.OPERATOR_ADMIN,
     ROLES.OPERATOR_SUPER_ADMIN,
     ROLES.OPERATOR_POKTAN,
     ROLES.PENYULUH_REGULER
@@ -291,14 +291,14 @@ const requireDataCreator = [
 // Data approver level (can approve data)
 const requireDataApprover = [
   auth,
-  hasAnyRole([ROLES.SUPER_ADMIN, ROLES.OPERATOR_SUPER_ADMIN, ROLES.PENYULUH_REGULER])
+  hasAnyRole([ROLES.OPERATOR_ADMIN, ROLES.OPERATOR_SUPER_ADMIN, ROLES.PENYULUH_REGULER])
 ];
 
 // Content viewer level (can view content)
 const requireContentViewer = [
   auth,
   hasAnyRole([
-    ROLES.SUPER_ADMIN,
+    ROLES.OPERATOR_ADMIN,
     ROLES.OPERATOR_SUPER_ADMIN,
     ROLES.OPERATOR_POKTAN,
     ROLES.PENYULUH_REGULER,

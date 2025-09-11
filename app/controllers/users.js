@@ -51,7 +51,7 @@ const userVerify = async (req, res) => {
 
   try {
     // Restriksi role
-    if (!['operator super admin'].includes(userRole)) {
+    if (!['operator super admin', 'operator admin'].includes(userRole)) {
       throw new ApiError(403, 'Anda tidak memiliki akses.');
     }
 

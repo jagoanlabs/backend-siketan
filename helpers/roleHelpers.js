@@ -1,7 +1,7 @@
 // helpers/roleHelpers.js - Complete and structured
 const ROLES = {
-  SUPER_ADMIN: 'super_admin',
   OPERATOR_SUPER_ADMIN: 'operator_super_admin',
+  OPERATOR_ADMIN: 'operator_admin',
   OPERATOR_POKTAN: 'operator_poktan',
   PENYULUH_REGULER: 'penyuluh_reguler',
   PENYULUH_SWADAYA: 'penyuluh_swadaya',
