@@ -418,6 +418,46 @@ module.exports = {
         description: 'Dapat mengimpor data kelompok'
       },
 
+
+      // ===== DATA operator PERMISSIONS =====
+      {
+        module: 'data_operator',
+        action: 'index',
+        display_name: 'Lihat Data operator',
+        description: 'Dapat melihat daftar data operator'
+      },
+      {
+        module: 'data_operator',
+        action: 'create',
+        display_name: 'Buat Data operator',
+        description: 'Dapat membuat data operator'
+      },
+      {
+        module: 'data_operator',
+        action: 'detail',
+        display_name: 'Detail Data operator',
+        description: 'Dapat melihat detail data operator'
+      },
+      {
+        module: 'data_operator',
+        action: 'edit',
+        display_name: 'Edit Data operator',
+        description: 'Dapat mengedit data operator'
+      },
+      {
+        module: 'data_operator',
+        action: 'delete',
+        display_name: 'Hapus Data operator',
+        description: 'Dapat menghapus data operator'
+      },
+      {
+        module: 'data_operator',
+        action: 'import',
+        display_name: 'Import Data operator',
+        description: 'Dapat mengimpor data operator'
+      },
+
+
       // ===== PROFILE ADMIN PERMISSIONS =====
       {
         module: 'profile_admin',
