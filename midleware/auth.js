@@ -148,7 +148,7 @@ const hasPermission = (permission) => {
     }
 
     // Super admin bypass
-    if (req.user.hasRole(ROLES.SUPER_ADMIN)) {
+    if (req.user.hasRole(ROLES.OPERATOR_SUPER_ADMIN)) {
       return next();
     }
 
@@ -225,7 +225,7 @@ const isOwner = (ownerField = 'accountID') => {
     }
 
     // Super admin bypass
-    if (req.user.hasRole(ROLES.SUPER_ADMIN)) {
+    if (req.user.hasRole(ROLES.OPERATOR_SUPER_ADMIN)) {
       return next();
     }
 

@@ -27,7 +27,6 @@ const dashboard = require('./dashboard');
 const wilayah = require('./wilayah');
 const landingStatistik = require('./landingStatistik');
 const { searchGlobal } = require('../controllers/search');
-const { ROLES } = require('../../helpers/roleHelpers');
 
 router.use('/api-docs', swaggerUI.serve);
 router.get('/api-docs', swaggerUI.setup(swaggerDocument));
@@ -37,18 +36,8 @@ router.get('/', (req, res) => {
     message: 'API is running in NEW BE'
   });
 });
-router.post(
-  '/cek-nik',
-  auth,
-  hasRole(ROLES.OPERATOR_SUPER_ADMIN, ROLES.OPERATOR_ADMIN, ROLES.OPERATOR),
-  cekNik
-);
-router.post(
-  '/cek-nip',
-  auth,
-  hasRole(ROLES.OPERATOR_SUPER_ADMIN, ROLES.OPERATOR_ADMIN, ROLES.OPERATOR),
-  cekNiP
-);
+router.post('/cek-nik', auth, cekNik);
+router.post('/cek-nip', auth, cekNiP);
 // search global
 router.get('/search', searchGlobal);
 router.use('/auth', akun);

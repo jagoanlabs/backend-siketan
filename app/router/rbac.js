@@ -27,41 +27,46 @@ const {
 
 // ========== ROLE MANAGEMENT ROUTES ==========
 // Only super admin can manage roles
-router.get('/roles', auth, hasRole(ROLES.SUPER_ADMIN), getAllRoles);
+router.get('/roles', auth, hasRole(ROLES.OPERATOR_SUPER_ADMIN), getAllRoles);
 
-router.get('/roles/:id', auth, hasRole(ROLES.SUPER_ADMIN), getRoleById);
+router.get('/roles/:id', auth, hasRole(ROLES.OPERATOR_SUPER_ADMIN), getRoleById);
 
-router.post('/roles', auth, hasRole(ROLES.SUPER_ADMIN), createRole);
+router.post('/roles', auth, hasRole(ROLES.OPERATOR_SUPER_ADMIN), createRole);
 
-router.put('/roles/:id', auth, hasRole(ROLES.SUPER_ADMIN), updateRole);
+router.put('/roles/:id', auth, hasRole(ROLES.OPERATOR_SUPER_ADMIN), updateRole);
 
-router.delete('/roles/:id', auth, hasRole(ROLES.SUPER_ADMIN), deleteRole);
+router.delete('/roles/:id', auth, hasRole(ROLES.OPERATOR_SUPER_ADMIN), deleteRole);
 
 // ========== PERMISSION MANAGEMENT ROUTES ==========
 // Only super admin can manage permissions
-router.get('/permissions', auth, hasRole(ROLES.SUPER_ADMIN), getAllPermissions);
+router.get('/permissions', auth, hasRole(ROLES.OPERATOR_SUPER_ADMIN), getAllPermissions);
 
-router.post('/permissions', auth, hasRole(ROLES.SUPER_ADMIN), createPermission);
+router.post('/permissions', auth, hasRole(ROLES.OPERATOR_SUPER_ADMIN), createPermission);
 
-router.put('/permissions/:id', auth, hasRole(ROLES.SUPER_ADMIN), updatePermission);
+router.put('/permissions/:id', auth, hasRole(ROLES.OPERATOR_SUPER_ADMIN), updatePermission);
 
-router.delete('/permissions/:id', auth, hasRole(ROLES.SUPER_ADMIN), deletePermission);
+router.delete('/permissions/:id', auth, hasRole(ROLES.OPERATOR_SUPER_ADMIN), deletePermission);
 
 // ========== USER ROLE MANAGEMENT ROUTES ==========
 // Super admin and operator super admin can assign roles
-router.post('/users/assign-role', auth, hasRole(ROLES.SUPER_ADMIN), assignRoleToUser);
+router.post('/users/assign-role', auth, hasRole(ROLES.OPERATOR_SUPER_ADMIN), assignRoleToUser);
 
-router.get('/users/:userId/permissions', auth, hasRole(ROLES.SUPER_ADMIN), getUserPermissions);
+router.get(
+  '/users/:userId/permissions',
+  auth,
+  hasRole(ROLES.OPERATOR_SUPER_ADMIN),
+  getUserPermissions
+);
 
 router.post(
   '/users/:userId/check-permission',
   auth,
-  hasRole(ROLES.SUPER_ADMIN),
+  hasRole(ROLES.OPERATOR_SUPER_ADMIN),
   checkUserPermission
 );
 
 // ========== RBAC STATISTICS ==========
-router.get('/statistics', auth, hasRole(ROLES.SUPER_ADMIN), getRbacStatistics);
+router.get('/statistics', auth, hasRole(ROLES.OPERATOR_SUPER_ADMIN), getRbacStatistics);
 
 // ========== CURRENT USER PERMISSIONS ==========
 // Get current user's permissions (any authenticated user can check their own)

@@ -177,7 +177,7 @@ const PERMISSION_GROUPS = {
 class RoleHelpers {
   // Check if user is admin level
   static isAdmin(user) {
-    return user.hasRole(ROLES.SUPER_ADMIN) || user.hasRole(ROLES.OPERATOR_SUPER_ADMIN);
+    return user.hasRole(ROLES.OPERATOR_SUPER_ADMIN) || user.hasRole(ROLES.OPERATOR_ADMIN);
   }
 
   // Check if user is operator level
@@ -207,8 +207,8 @@ class RoleHelpers {
 
   // Get user role type for display
   static getUserRoleType(user) {
-    if (user.hasRole(ROLES.SUPER_ADMIN)) return 'Super Admin';
-    if (user.hasRole(ROLES.OPERATOR_SUPER_ADMIN)) return 'Operator Super Admin';
+    if (user.hasRole(ROLES.OPERATOR_SUPER_ADMIN)) return 'Super Admin';
+    if (user.hasRole(ROLES.OPERATOR_ADMIN)) return 'Operator Admin';
     if (user.hasRole(ROLES.OPERATOR_POKTAN)) return 'Operator Poktan';
     if (user.hasRole(ROLES.PENYULUH_REGULER)) return 'Penyuluh Reguler';
     if (user.hasRole(ROLES.PENYULUH_SWADAYA)) return 'Penyuluh Swadaya';
