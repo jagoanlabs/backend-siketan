@@ -203,10 +203,12 @@ const getDetailProduk = async (req, res) => {
           model: tblAkun,
           include: [
             {
-              model: dataPetani
+              model: dataPetani,
+              as: 'petani'
             },
             {
-              model: dataPenyuluh
+              model: dataPenyuluh,
+              as: 'penyuluh'
             }
           ]
         }
