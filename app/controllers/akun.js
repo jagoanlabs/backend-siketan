@@ -1395,6 +1395,9 @@ const ubahPeran = async (req, res) => {
     let detailUser;
     if (!user) throw new ApiError(400, 'user tidak ditemukan');
 
+    // Debug: Log user data
+    console.log('User data:', JSON.stringify(user, null, 2));
+
     // check detail user in every table
     detailUser = await dataPetani.findOne({
       where: { accountID: user.accountID }
@@ -1411,32 +1414,64 @@ const ubahPeran = async (req, res) => {
       });
     }
 
+    // Debug: Log detail user data
+    console.log('Detail user data:', JSON.stringify(detailUser, null, 2));
+
     const jsonDetailUser = JSON.parse(JSON.stringify(detailUser));
     const jsonUser = JSON.parse(JSON.stringify(user));
 
-    const { id, createdAt, updatedAt, ...payload } = {
+    const {
+      id: detailId,
+      createdAt,
+      updatedAt,
+      ...payload
+    } = {
       ...jsonDetailUser,
       ...jsonUser,
       noTelp: jsonDetailUser?.noTelp || jsonUser.no_wa
     };
 
-    if (roles === 'petani') {
-      await dataPetani.destroy({ where: { accountID: user.accountID }, force: true });
-      await dataPetani.create(payload);
-    } else if (roles === 'penyuluh') {
-      await dataPenyuluh.destroy({
-        where: { accountID: user.accountID },
-        force: true
-      });
-      await dataPenyuluh.create(payload);
-    } else {
-      await dataOperator.destroy({
-        where: { accountID: user.accountID },
-        force: true
-      });
-      await dataOperator.create(payload);
-    }
+    // Debug: Log payload before create
+    console.log('Payload for create:', JSON.stringify(payload, null, 2));
 
+    // Store old role before updating
+    const oldRole = user.peran;
+    console.log('Old role:', oldRole, 'New role:', roles);
+
+    let roleName = roles;
+    switch (roles) {
+      case 'operator admin':
+        roleName = 'operator_admin';
+        break;
+      case 'operator super admin':
+        roleName = 'operator_super_admin';
+        break;
+      case 'operator poktan':
+        roleName = 'operator_poktan';
+        break;
+      case 'penyuluh':
+        roleName = 'penyuluh';
+        break;
+      case 'petani':
+        roleName = 'petani';
+        break;
+      default:
+        roleName = roles;
+    }
+    const roleUser = await roleModel.findOne({ where: { name: roleName } });
+    if (!roleUser) throw new ApiError(400, 'role tidak ditemukan');
+
+    // Update user role first
+    await tblAkun.update(
+      { peran: roles, role_id: roleUser.id },
+      {
+        where: {
+          id
+        }
+      }
+    );
+
+    // Update user role first
     await tblAkun.update(
       { peran: roles },
       {
@@ -1446,28 +1481,85 @@ const ubahPeran = async (req, res) => {
       }
     );
 
-    if (user.peran === 'petani') {
+    // Remove from old role table
+    if (oldRole === 'petani') {
       await dataPetani.destroy({ where: { accountID: user.accountID } });
-    } else if (user.peran === 'penyuluh') {
+    } else if (oldRole === 'penyuluh') {
       await dataPenyuluh.destroy({
         where: { accountID: user.accountID }
       });
     } else if (
-      user.peran === 'operator super admin' ||
-      user.peran === 'operator admin' ||
-      user.peran === 'operator poktan'
+      oldRole === 'operator super admin' ||
+      oldRole === 'operator admin' ||
+      oldRole === 'operator poktan'
     ) {
       await dataOperator.destroy({
         where: { accountID: user.accountID }
       });
     }
 
+    // Clean payload before creating - remove fields that might cause conflicts
+    const cleanPayload = {
+      accountID: user.accountID,
+      nama: payload.nama || user.nama,
+      noTelp: payload.noTelp
+      // Add other required fields for petani table here
+      // Remove any fields that don't belong to the target table
+    };
+
+    // Debug: Log clean payload
+    console.log('Clean payload:', JSON.stringify(cleanPayload, null, 2));
+
+    // Add to new role table
+    if (roles === 'petani') {
+      // Ensure all required fields for dataPetani are present
+      const petaniPayload = {
+        ...cleanPayload
+        // Add any petani-specific required fields here
+        // Example: alamat, ktp, etc.
+      };
+
+      console.log('Creating dataPetani with:', JSON.stringify(petaniPayload, null, 2));
+      await dataPetani.create(petaniPayload);
+    } else if (roles === 'penyuluh') {
+      const penyuluhPayload = {
+        ...cleanPayload
+        // Add any penyuluh-specific required fields here
+      };
+
+      console.log('Creating dataPenyuluh with:', JSON.stringify(penyuluhPayload, null, 2));
+      await dataPenyuluh.create(penyuluhPayload);
+    } else {
+      const operatorPayload = {
+        ...cleanPayload
+        // Add any operator-specific required fields here
+      };
+
+      console.log('Creating dataOperator with:', JSON.stringify(operatorPayload, null, 2));
+      await dataOperator.create(operatorPayload);
+    }
+
     return res.status(200).json({
       message: 'Peran berhasil diubah'
     });
   } catch (error) {
+    // Enhanced error logging
+    console.error('Error in ubahPeran:', error);
+    console.error('Error stack:', error.stack);
+
+    // Log validation errors specifically
+    if (error.name === 'SequelizeValidationError') {
+      console.error('Validation errors:', error.errors);
+    }
+
     res.status(error.statusCode || 500).json({
-      message: error.message
+      message: error.message,
+      // In development, you might want to include more error details
+      ...(process.env.NODE_ENV === 'development' && {
+        error: error.message,
+        stack: error.stack,
+        validationErrors: error.errors || null
+      })
     });
   }
 };
