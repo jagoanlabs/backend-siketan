@@ -28,7 +28,7 @@ const landingStatistik = require('./landingStatistik');
 const { searchGlobal } = require('../controllers/search');
 
 // const swaggerDocument = require('../../docs/swagger-output.json');
-const swaggerDocument = require('../../docs/swagger-output.json');
+const swaggerDocument = require('../../docs/Siketan.swagger.json');
 router.use('/api-docs', swaggerUI.serve);
 router.get(
   '/api-docs',
