@@ -1,12 +1,12 @@
 # Gunakan Node.js versi LTS
-FROM node:22-alpine
+FROM oven/bun:alpine
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --production
+RUN bun install
 
 COPY . .
 
 EXPOSE 5000
-CMD ["node", "src/index.js"]
+CMD ["bun", "index.js"]
