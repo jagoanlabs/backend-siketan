@@ -3,7 +3,7 @@ const { fakerID_ID: faker } = require('@faker-js/faker');
 
 const kelompok = require('../buatSeeder/kelompok');
 const crypto = require('crypto');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {

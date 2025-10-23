@@ -16,7 +16,7 @@ const {
 const ApiError = require('../../utils/ApiError');
 const imageKit = require('../../midleware/imageKit');
 const dotenv = require('dotenv');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const ExcelJS = require('exceljs');
 const { postActivity } = require('./logActivity');

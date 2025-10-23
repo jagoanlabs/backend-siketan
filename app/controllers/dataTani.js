@@ -14,7 +14,7 @@ const { Op } = require('sequelize');
 const ApiError = require('../../utils/ApiError');
 const imageKit = require('../../midleware/imageKit');
 //import bycrypt
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 //import crypto
 const crypto = require('crypto');
 const ExcelJS = require('exceljs');

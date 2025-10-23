@@ -1,6 +1,6 @@
 const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const {
   tbl_akun: tblAkun,
   dataPerson,
