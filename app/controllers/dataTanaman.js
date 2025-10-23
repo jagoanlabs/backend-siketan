@@ -328,8 +328,27 @@ const uploadDataTanaman = async (req, res) => {
     const { file } = req;
     if (!file) throw new ApiError(400, 'File tidak ditemukan.');
 
+    // Validasi tipe file
+    const allowedMimeTypes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel'
+    ];
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new ApiError(
+        400,
+        'Format file tidak valid. Harap upload file Excel (.xlsx atau .xls).'
+      );
+    }
+
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(file.buffer);
+    try {
+      await workbook.xlsx.load(file.buffer);
+    } catch (error) {
+      throw new ApiError(
+        400,
+        'File Excel tidak valid atau rusak. Pastikan file dalam format .xlsx yang benar.'
+      );
+    }
     const worksheet = workbook.getWorksheet(1);
 
     const rowCount = worksheet.rowCount;
