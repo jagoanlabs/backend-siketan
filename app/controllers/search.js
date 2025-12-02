@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { penjual, tbl_akun, beritaTani, eventTani } = require('../models');
+const { penjual, tbl_akun, beritaTani, eventTani, dataPenyuluh, dataPetani } = require('../models');
 
 const getLikeOperator = () => {
   return Op.like;
@@ -265,10 +265,21 @@ const searchGlobal = async (req, res) => {
           include: [
             {
               model: penjual,
+              as: 'penjual', // FIX ✔
+              required: false
+            },
+            {
+              model: dataPenyuluh,
+              as: 'penyuluh', // FIX ✔
+              required: false
+            },
+            {
+              model: dataPetani,
+              as: 'petani', // FIX ✔
               required: false
             }
           ],
-          group: ['tbl_akun.nama'], // supaya 1 akun sekali
+          distinct: true, // Instead of GROUP BY, use DISTINCT to get unique results
           order: [['updatedAt', 'DESC']]
         });
         console.log('Found tokos:', tokos.length);
@@ -285,6 +296,7 @@ const searchGlobal = async (req, res) => {
             productCount: toko.penjuals ? toko.penjuals.length : 0,
             createdAt: toko.createdAt,
             updatedAt: toko.updatedAt,
+            alamat: toko.petani?.alamat || toko.penyuluh?.alamat,
             // Raw data untuk scoring
             nama: toko.nama,
             peran: toko.peran
@@ -539,13 +551,13 @@ const searchGlobal = async (req, res) => {
     if (type !== 'all') {
       const sectionData =
         results.data[
-          type === 'toko'
-            ? 'tokos'
-            : type === 'berita'
-              ? 'berita'
-              : type === 'event'
-                ? 'events'
-                : 'products'
+        type === 'toko'
+          ? 'tokos'
+          : type === 'berita'
+            ? 'berita'
+            : type === 'event'
+              ? 'events'
+              : 'products'
         ];
 
       if (sectionData) {
@@ -573,20 +585,19 @@ const searchGlobal = async (req, res) => {
       };
       const sectionData =
         results.data[
-          type === 'toko'
-            ? 'tokos'
-            : type === 'berita'
-              ? 'berita'
-              : type === 'event'
-                ? 'events'
-                : 'products'
+        type === 'toko'
+          ? 'tokos'
+          : type === 'berita'
+            ? 'berita'
+            : type === 'event'
+              ? 'events'
+              : 'products'
         ];
       message = `Ditemukan ${sectionData?.total || 0} ${typeNames[type]} untuk pencarian "${searchQuery}"`;
     }
 
-    message += ` (diurutkan berdasarkan ${
-      sortBy === 'relevance' ? 'relevansi' : sortBy === 'date' ? 'tanggal' : 'nama'
-    })`;
+    message += ` (diurutkan berdasarkan ${sortBy === 'relevance' ? 'relevansi' : sortBy === 'date' ? 'tanggal' : 'nama'
+      })`;
 
     res.status(200).json({
       message: message,
